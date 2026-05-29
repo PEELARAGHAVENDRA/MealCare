@@ -1,0 +1,355 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  DISTRICT_ADMIN
+  NUTRITION_OFFICER
+  SCHOOL_HEAD
+  KITCHEN_STAFF
+  TEACHER
+  STUDENT_PARENT
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum MealType {
+  BREAKFAST
+  LUNCH
+  SNACK
+}
+
+enum PlanStatus {
+  DRAFT
+  APPROVED
+  REJECTED
+  HOLIDAY
+}
+
+enum AiRecommendationPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum AiRecommendationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  AUTO
+}
+
+model User {
+  id           String     @id @default(cuid())
+  name         String
+  phone        String?
+  email        String     @unique
+  passwordHash String
+  role         UserRole
+  schoolId     String?
+  districtId   String?
+  status       UserStatus @default(ACTIVE)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  school        School?      @relation(fields: [schoolId], references: [id])
+  generatedPlans WeeklyPlan[] @relation("GeneratedPlans")
+  approvedPlans  WeeklyPlan[] @relation("ApprovedPlans")
+  reports        Report[]
+
+  @@index([role, schoolId])
+  @@map("users")
+}
+
+model School {
+  id           String   @id @default(cuid())
+  name         String
+  code         String   @unique
+  district     String
+  block        String
+  address      String
+  studentCount Int
+  type         String   @default("SCHOOL")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  users           User[]
+  meals           Meal[]
+  attendance      Attendance[]
+  inventory       Inventory[]
+  weeklyPlans     WeeklyPlan[]
+  reports         Report[]
+
+  @@map("schools")
+}
+
+model Ingredient {
+  id                 String   @id @default(cuid())
+  name               String   @unique
+  unit               String
+  category           String
+  defaultCostPerUnit Decimal  @db.Decimal(10, 2)
+  createdAt          DateTime @default(now())
+
+  mealIngredients MealIngredient[]
+  inventory       Inventory[]
+
+  @@map("ingredients")
+}
+
+model NutritionData {
+  id                    String  @id @default(cuid())
+  foodItem              String  @unique
+  category              String
+  calories              Float
+  protein               Float
+  carbs                 Float
+  fat                   Float
+  iron                  Float
+  calcium               Float
+  vitaminA              Float
+  vitaminB              Float
+  vitaminC              Float
+  vitaminD              Float
+  fiber                 Float
+  defaultCostPerServing Decimal @default(0) @db.Decimal(10, 2)
+
+  @@map("nutrition_data")
+}
+
+model Meal {
+  id            String   @id @default(cuid())
+  schoolId      String
+  date          DateTime
+  mealType      MealType
+  menuItems     String[]
+  plannedCount  Int
+  preparedCount Int
+  servedCount   Int
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  school          School             @relation(fields: [schoolId], references: [id])
+  ingredients     MealIngredient[]
+  distribution    MealDistribution?
+  foodWastage     FoodWastage?
+
+  @@index([schoolId, date])
+  @@map("meals")
+}
+
+model MealIngredient {
+  id           String  @id @default(cuid())
+  mealId       String
+  ingredientId String
+  quantityUsed Float
+  unit         String
+
+  meal       Meal       @relation(fields: [mealId], references: [id], onDelete: Cascade)
+  ingredient Ingredient @relation(fields: [ingredientId], references: [id])
+
+  @@map("meal_ingredients")
+}
+
+model Attendance {
+  id               String   @id @default(cuid())
+  schoolId         String
+  date             DateTime
+  presentStudents  Int
+  mealParticipants Int
+  absentees        Int
+  createdAt        DateTime @default(now())
+
+  school School @relation(fields: [schoolId], references: [id])
+
+  @@unique([schoolId, date])
+  @@index([schoolId, date])
+  @@map("attendance")
+}
+
+model MealDistribution {
+  id                String  @id @default(cuid())
+  mealId            String  @unique
+  servedCount       Int
+  remainingAmount   Float
+  distributionNotes String?
+
+  meal Meal @relation(fields: [mealId], references: [id], onDelete: Cascade)
+
+  @@map("meal_distribution")
+}
+
+model FoodWastage {
+  id               String   @id @default(cuid())
+  mealId           String   @unique
+  preparedQuantity Float
+  servedQuantity   Float
+  leftoverQuantity Float
+  wastePercentage  Float
+  createdAt        DateTime @default(now())
+
+  meal Meal @relation(fields: [mealId], references: [id], onDelete: Cascade)
+
+  @@index([mealId])
+  @@map("food_wastage")
+}
+
+model Inventory {
+  id                String   @id @default(cuid())
+  schoolId          String
+  ingredientId      String
+  quantityAvailable Float
+  unit              String
+  lastUpdatedAt     DateTime @updatedAt
+
+  school     School     @relation(fields: [schoolId], references: [id])
+  ingredient Ingredient @relation(fields: [ingredientId], references: [id])
+
+  @@unique([schoolId, ingredientId])
+  @@index([schoolId, ingredientId])
+  @@map("inventory")
+}
+
+model WeeklyPlan {
+  id                   String     @id @default(cuid())
+  schoolId             String
+  weekStartDate        DateTime
+  status               PlanStatus @default(DRAFT)
+  generatedById        String?
+  approvedById         String?
+  totalCostEstimate    Decimal    @db.Decimal(10, 2)
+  weeklyNutritionScore Float
+  createdAt            DateTime   @default(now())
+
+  school          School             @relation(fields: [schoolId], references: [id])
+  generatedBy     User?              @relation("GeneratedPlans", fields: [generatedById], references: [id])
+  approvedBy      User?              @relation("ApprovedPlans", fields: [approvedById], references: [id])
+  days            WeeklyPlanDay[]
+
+  @@index([schoolId, weekStartDate])
+  @@map("weekly_plan")
+}
+
+model WeeklyPlanDay {
+  id            String  @id @default(cuid())
+  weeklyPlanId  String
+  dayOfWeek     String
+  menuItems     String[]
+  calories      Float
+  protein       Float
+  vitaminScore  Float
+  costEstimate  Decimal @db.Decimal(10, 2)
+
+  weeklyPlan WeeklyPlan @relation(fields: [weeklyPlanId], references: [id], onDelete: Cascade)
+
+  @@map("weekly_plan_days")
+}
+
+// ── AI Request Log ────────────────────────────────────────────────────────────
+// Every call to any AI module is logged here for auditing and token monitoring.
+
+model AiRequest {
+  id           String   @id @default(cuid())
+  type         String   // e.g. "nutrition-analysis", "meal-optimization"
+  input        Json     // raw input sent to provider
+  response     Json     // raw output from provider
+  provider     String   // "gemini" | "mock" | "rules-engine-fallback"
+  model        String   // e.g. "gemini-2.5-flash"
+  tokensUsed   Int      @default(0)
+  latencyMs    Int      @default(0)
+  fallbackUsed Boolean  @default(false)
+  schoolId     String?  // optional school context
+  requestedBy  String?  // userId if triggered by a user action
+  createdAt    DateTime @default(now())
+
+  @@index([type])
+  @@index([createdAt])
+  @@index([schoolId])
+  @@map("ai_requests")
+}
+
+// ── AI Predictions ────────────────────────────────────────────────────────────
+// Stores prediction results (participation, waste) for trend analysis.
+
+model AiPrediction {
+  id             String   @id @default(cuid())
+  date           DateTime // the date this prediction is for
+  predictionType String   // "participation" | "waste" | "nutrition"
+  value          Float    // primary predicted numeric value
+  confidence     Float    // 0.0–1.0
+  metadata       Json?    // full output blob from the AI module
+  schoolId       String
+  provider       String
+  fallbackUsed   Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  @@unique([date, predictionType, schoolId])
+  @@index([schoolId, date])
+  @@map("ai_predictions")
+}
+
+// ── AI Recommendations ────────────────────────────────────────────────────────
+// Stores meal plan and ingredient recommendations for approval workflow.
+
+model AiRecommendation {
+  id             String                     @id @default(cuid())
+  date           DateTime                   @default(now())
+  schoolId       String
+  type           String                     // "meal-plan" | "ingredient" | "inventory"
+  recommendation Json                       // full recommendation payload
+  priority       AiRecommendationPriority   @default(MEDIUM)
+  status         AiRecommendationStatus     @default(PENDING)
+  approvedBy     String?                    // userId of approver/rejecter
+  approvedAt     DateTime?
+  rejectionNote  String?
+  provider       String
+  createdAt      DateTime                   @default(now())
+  updatedAt      DateTime                   @updatedAt
+
+  @@index([schoolId, status])
+  @@index([date])
+  @@map("ai_recommendations")
+}
+
+// ── AI Provider Config ────────────────────────────────────────────────────────
+// Allows master admin to switch providers via DB without redeploy.
+
+model AiProviderConfig {
+  id         String   @id @default(cuid())
+  provider   String   @default("gemini") // "gemini" | "mock"
+  modelName  String   @default("gemini-2.5-flash")
+  isActive   Boolean  @default(true)
+  updatedBy  String?
+  updatedAt  DateTime @updatedAt
+  createdAt  DateTime @default(now())
+
+  @@map("ai_provider_config")
+}
+
+model Report {
+  id          String   @id @default(cuid())
+  schoolId    String
+  reportType  String
+  periodStart DateTime
+  periodEnd   DateTime
+  generatedById String?
+  payloadJson Json
+  createdAt   DateTime @default(now())
+
+  school      School @relation(fields: [schoolId], references: [id])
+  generatedBy User?  @relation(fields: [generatedById], references: [id])
+
+  @@map("reports")
+}

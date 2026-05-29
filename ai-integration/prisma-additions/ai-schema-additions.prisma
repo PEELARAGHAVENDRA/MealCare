@@ -1,0 +1,105 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// prisma-additions/ai-schema-additions.prisma
+//
+// ADD these models to your existing services/api/prisma/schema.prisma file.
+// Do not replace — append after your last existing model.
+// Then run:
+//   npm run db:generate
+//   npm run db:push
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── AI Request Log ────────────────────────────────────────────────────────────
+// Every call to any AI module is logged here for auditing and token monitoring.
+
+model AiRequest {
+  id           String   @id @default(cuid())
+  type         String   // e.g. "nutrition-analysis", "meal-optimization"
+  input        Json     // raw input sent to provider
+  response     Json     // raw output from provider
+  provider     String   // "gemini" | "mock" | "rules-engine-fallback"
+  model        String   // e.g. "gemini-2.5-flash"
+  tokensUsed   Int      @default(0)
+  latencyMs    Int      @default(0)
+  fallbackUsed Boolean  @default(false)
+  schoolId     String?  // optional school context
+  requestedBy  String?  // userId if triggered by a user action
+  createdAt    DateTime @default(now())
+
+  @@index([type])
+  @@index([createdAt])
+  @@index([schoolId])
+  @@map("ai_requests")
+}
+
+// ── AI Predictions ────────────────────────────────────────────────────────────
+// Stores prediction results (participation, waste) for trend analysis.
+
+model AiPrediction {
+  id             String   @id @default(cuid())
+  date           DateTime // the date this prediction is for
+  predictionType String   // "participation" | "waste" | "nutrition"
+  value          Float    // primary predicted numeric value
+  confidence     Float    // 0.0–1.0
+  metadata       Json?    // full output blob from the AI module
+  schoolId       String
+  provider       String
+  fallbackUsed   Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  @@unique([date, predictionType, schoolId])
+  @@index([schoolId, date])
+  @@map("ai_predictions")
+}
+
+// ── AI Recommendations ────────────────────────────────────────────────────────
+// Stores meal plan and ingredient recommendations for approval workflow.
+
+model AiRecommendation {
+  id             String                     @id @default(cuid())
+  date           DateTime                   @default(now())
+  schoolId       String
+  type           String                     // "meal-plan" | "ingredient" | "inventory"
+  recommendation Json                       // full recommendation payload
+  priority       AiRecommendationPriority   @default(MEDIUM)
+  status         AiRecommendationStatus     @default(PENDING)
+  approvedBy     String?                    // userId of approver/rejecter
+  approvedAt     DateTime?
+  rejectionNote  String?
+  provider       String
+  createdAt      DateTime                   @default(now())
+  updatedAt      DateTime                   @updatedAt
+
+  @@index([schoolId, status])
+  @@index([date])
+  @@map("ai_recommendations")
+}
+
+enum AiRecommendationPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum AiRecommendationStatus {
+  PENDING    // awaiting school admin review
+  APPROVED   // accepted and applied
+  REJECTED   // declined by admin
+  AUTO       // auto-applied without human review (low-risk)
+}
+
+// ── AI Provider Config ────────────────────────────────────────────────────────
+// Allows master admin to switch providers via DB without redeploy.
+// Checked at startup; ENV var takes precedence.
+
+model AiProviderConfig {
+  id         String   @id @default(cuid())
+  provider   String   @default("gemini") // "gemini" | "mock"
+  modelName  String   @default("gemini-2.5-flash")
+  isActive   Boolean  @default(true)
+  updatedBy  String?
+  updatedAt  DateTime @updatedAt
+  createdAt  DateTime @default(now())
+
+  @@map("ai_provider_config")
+}

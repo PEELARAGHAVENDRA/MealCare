@@ -1,0 +1,157 @@
+# AI Engine Integration — MealCare AI
+
+This document describes how the AI abstraction layer is structured and how to wire it into the existing project.
+
+---
+
+## Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      Express API Routes                      │
+│              /api/ai/*  (ai.routes.ts)                       │
+└───────────────────────┬─────────────────────────────────────┘
+                        │
+┌───────────────────────▼─────────────────────────────────────┐
+│                    AI Modules (index.ts)                      │
+│  nutritionEngine  mealOptimizer  participationPredictor      │
+│  wastageAnalyzer  inventoryAnalyzer  holidayPlanner          │
+│  recommendationEngine                                         │
+└───────────────────────┬─────────────────────────────────────┘
+                        │
+┌───────────────────────▼─────────────────────────────────────┐
+│              ProviderFactory (auto-fallback proxy)           │
+│                                                              │
+│   AI_PROVIDER=gemini → GeminiProvider                        │
+│   AI_PROVIDER=mock   → MockProvider                          │
+│   On any error       → RulesEngine (fallback)                │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Files Added
+
+```
+packages/shared-contracts/src/ai/
+  types.ts                        ← All input/output TypeScript types
+
+services/ai-engine/src/
+  providers/
+    AIProvider.interface.ts       ← Core contract (implement to add new LLM)
+    GeminiProvider.ts             ← Gemini REST API implementation
+    MockProvider.ts               ← Static fixtures for tests
+    ProviderFactory.ts            ← Factory + fallback proxy + hot-swap
+  prompts/
+    index.ts                      ← All reusable prompt functions
+  modules/
+    index.ts                      ← 8 AI module exports (logged, typed)
+  fallback/
+    RulesEngine.ts                ← Deterministic fallback (no LLM needed)
+
+services/api/src/ai/routes/
+  ai.routes.ts                    ← Express routes for all AI endpoints
+
+prisma-additions/
+  ai-schema-additions.prisma      ← 4 new Prisma models to append to schema
+
+.env.example                      ← Updated with AI variables
+```
+
+---
+
+## Quick Start
+
+### 1. Append Prisma models
+
+Copy the contents of `prisma-additions/ai-schema-additions.prisma` and paste it at the **end** of `services/api/prisma/schema.prisma`, then:
+
+```bash
+npm run db:generate
+npm run db:push
+```
+
+### 2. Add environment variables
+
+In your `.env`:
+
+```env
+AI_PROVIDER=gemini          # or "mock" for local dev
+GEMINI_API_KEY=             # paste your key here when ready
+MODEL_NAME=gemini-2.5-flash # or gemini-2.5-pro
+AI_TIMEOUT_MS=30000
+```
+
+### 3. Mount AI routes in Express
+
+In `services/api/src/app.ts` (or wherever you mount routers):
+
+```typescript
+import aiRouter from "./ai/routes/ai.routes";
+
+// After your auth middleware:
+app.use("/api/ai", authMiddleware, aiRouter);
+```
+
+### 4. Enable Prisma logging (optional)
+
+In `services/ai-engine/src/modules/index.ts`, uncomment the Prisma import and the `prisma.aiRequest.create(...)` call inside `logAIRequest()`. Point the import at your existing Prisma client instance.
+
+---
+
+## API Endpoints
+
+| Method | Path | Role | Description |
+|--------|------|------|-------------|
+| POST | `/api/ai/nutrition` | all staff | Analyze meal ingredients |
+| POST | `/api/ai/meal-plan` | admin | Generate weekly meal plan |
+| POST | `/api/ai/participation` | admin, officer | Predict student turnout |
+| POST | `/api/ai/waste` | all staff | Predict food waste |
+| POST | `/api/ai/inventory` | all staff | Analyze inventory health |
+| POST | `/api/ai/holiday-plan` | admin | Adjust plan for holidays |
+| POST | `/api/ai/recommendations` | admin, officer | Get ingredient recommendations |
+| PATCH | `/api/ai/recommendations/:id/approve` | admin | Approve AI recommendation |
+| PATCH | `/api/ai/recommendations/:id/reject` | admin | Reject AI recommendation |
+| POST | `/api/ai/admin/provider` | district_admin | Switch AI provider |
+| GET | `/api/ai/admin/stats` | district_admin | View token usage and stats |
+| GET | `/api/ai/health` | all authenticated | Health check |
+
+---
+
+## Adding a New LLM Provider
+
+1. Create `services/ai-engine/src/providers/YourProvider.ts`
+2. Implement the `AIProvider` interface (8 methods + `getLastUsageStats`)
+3. Add a case in `ProviderFactory.ts`:
+   ```typescript
+   case "yourprovider":
+     return new YourProvider();
+   ```
+4. Set `AI_PROVIDER=yourprovider` in `.env`
+
+No other files need to change.
+
+---
+
+## Fallback Behaviour
+
+If Gemini is unreachable or returns an error:
+
+- The `ProviderFactory` Proxy catches the error silently
+- Logs: `[AI Fallback] Switching to rules engine for this request.`
+- The `RulesEngine` returns a deterministic, rules-based result
+- The response includes a `note` field: `"⚠️ AI unavailable — Generated by local rules engine"`
+- **The app never crashes** due to an AI failure
+
+---
+
+## Role Permissions
+
+| Feature | Kitchen Staff | School Admin | Nutrition Officer | District Admin |
+|---------|:---:|:---:|:---:|:---:|
+| View AI outputs | ✅ | ✅ | ✅ | ✅ |
+| Run nutrition analysis | ✅ | ✅ | ✅ | ✅ |
+| Generate meal plan | ❌ | ✅ | ❌ | ✅ |
+| Approve/reject plans | ❌ | ✅ | ❌ | ✅ |
+| Switch AI provider | ❌ | ❌ | ❌ | ✅ |
+| View token usage | ❌ | ❌ | ❌ | ✅ |

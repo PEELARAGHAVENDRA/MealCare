@@ -1,0 +1,18 @@
+[
+  {"foodItem":"Rice","category":"Grain","calories":130,"protein":2.7,"carbs":28,"fat":0.3,"iron":1.2,"calcium":10,"vitaminA":0,"vitaminB":0.1,"vitaminC":0,"vitaminD":0,"fiber":0.4,"defaultCostPerServing":4},
+  {"foodItem":"Dal","category":"Pulse","calories":116,"protein":9,"carbs":20,"fat":0.4,"iron":3.3,"calcium":19,"vitaminA":0,"vitaminB":0.2,"vitaminC":1,"vitaminD":0,"fiber":7.9,"defaultCostPerServing":8},
+  {"foodItem":"Egg","category":"Protein","calories":78,"protein":6.3,"carbs":0.6,"fat":5.3,"iron":0.9,"calcium":25,"vitaminA":75,"vitaminB":0.6,"vitaminC":0,"vitaminD":1.1,"fiber":0,"defaultCostPerServing":7},
+  {"foodItem":"Spinach","category":"Vegetable","calories":23,"protein":2.9,"carbs":3.6,"fat":0.4,"iron":2.7,"calcium":99,"vitaminA":469,"vitaminB":0.2,"vitaminC":28,"vitaminD":0,"fiber":2.2,"defaultCostPerServing":5},
+  {"foodItem":"Carrot","category":"Vegetable","calories":41,"protein":0.9,"carbs":10,"fat":0.2,"iron":0.3,"calcium":33,"vitaminA":835,"vitaminB":0.1,"vitaminC":6,"vitaminD":0,"fiber":2.8,"defaultCostPerServing":4},
+  {"foodItem":"Milk","category":"Dairy","calories":61,"protein":3.2,"carbs":4.8,"fat":3.3,"iron":0,"calcium":113,"vitaminA":46,"vitaminB":0.4,"vitaminC":0,"vitaminD":1.2,"fiber":0,"defaultCostPerServing":10},
+  {"foodItem":"Banana","category":"Fruit","calories":89,"protein":1.1,"carbs":23,"fat":0.3,"iron":0.3,"calcium":5,"vitaminA":3,"vitaminB":0.4,"vitaminC":9,"vitaminD":0,"fiber":2.6,"defaultCostPerServing":5},
+  {"foodItem":"Groundnuts","category":"Protein","calories":567,"protein":25.8,"carbs":16,"fat":49,"iron":4.6,"calcium":92,"vitaminA":0,"vitaminB":0.6,"vitaminC":0,"vitaminD":0,"fiber":8.5,"defaultCostPerServing":6},
+  {"foodItem":"Tomato","category":"Vegetable","calories":18,"protein":0.9,"carbs":3.9,"fat":0.2,"iron":0.3,"calcium":10,"vitaminA":42,"vitaminB":0.1,"vitaminC":14,"vitaminD":0,"fiber":1.2,"defaultCostPerServing":3},
+  {"foodItem":"Beans","category":"Vegetable","calories":31,"protein":1.8,"carbs":7,"fat":0.1,"iron":1,"calcium":37,"vitaminA":35,"vitaminB":0.1,"vitaminC":12,"vitaminD":0,"fiber":3.4,"defaultCostPerServing":5},
+  {"foodItem":"Vegetable Curry","category":"Prepared","calories":95,"protein":3,"carbs":12,"fat":4,"iron":1.2,"calcium":45,"vitaminA":210,"vitaminB":0.2,"vitaminC":20,"vitaminD":0,"fiber":4,"defaultCostPerServing":9},
+  {"foodItem":"Sambar","category":"Prepared","calories":140,"protein":6,"carbs":22,"fat":3,"iron":2.1,"calcium":55,"vitaminA":120,"vitaminB":0.3,"vitaminC":12,"vitaminD":0,"fiber":5,"defaultCostPerServing":9},
+  {"foodItem":"Lemon Rice","category":"Prepared","calories":210,"protein":4,"carbs":35,"fat":6,"iron":1,"calcium":20,"vitaminA":10,"vitaminB":0.2,"vitaminC":8,"vitaminD":0,"fiber":2,"defaultCostPerServing":8},
+  {"foodItem":"Vegetable Pulao","category":"Prepared","calories":240,"protein":5.5,"carbs":38,"fat":7,"iron":1.7,"calcium":42,"vitaminA":180,"vitaminB":0.3,"vitaminC":15,"vitaminD":0,"fiber":4.5,"defaultCostPerServing":12},
+  {"foodItem":"Egg Curry","category":"Prepared","calories":180,"protein":9.5,"carbs":8,"fat":11,"iron":1.4,"calcium":55,"vitaminA":110,"vitaminB":0.6,"vitaminC":5,"vitaminD":1,"fiber":1.5,"defaultCostPerServing":14},
+  {"foodItem":"Spinach Dal","category":"Prepared","calories":160,"protein":10,"carbs":24,"fat":3,"iron":5,"calcium":100,"vitaminA":430,"vitaminB":0.4,"vitaminC":24,"vitaminD":0,"fiber":8,"defaultCostPerServing":11}
+]

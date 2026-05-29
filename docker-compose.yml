@@ -1,0 +1,55 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-midday}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-midday_password}
+      POSTGRES_DB: ${POSTGRES_DB:-midday_meal_ai}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-midday}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: infra/docker/api.Dockerfile
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://midday:midday_password@postgres:5432/midday_meal_ai?schema=public}
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1d}
+      API_PORT: 4000
+      AI_SERVICE_URL: http://ai-service:8000
+    ports:
+      - "4000:4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ai-service:
+        condition: service_started
+
+  ai-service:
+    build:
+      context: services/ai-service
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+
+  web-dashboard:
+    build:
+      context: .
+      dockerfile: infra/docker/web.Dockerfile
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:4000}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:
