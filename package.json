@@ -10,7 +10,7 @@
     "dev": "npm run dev -w services/api",
     "dev:api": "npm run dev -w services/api",
     "dev:web": "npm run dev -w apps/web-dashboard",
-    "build": "npm run build -w packages/shared-contracts && npm run build -w services/api && npm run build -w apps/web-dashboard",
+    "build": "npm run db:generate && npm run build -w packages/shared-contracts && npm run build -w services/api && npm run build -w apps/web-dashboard",
     "test": "npm run test -w services/api",
     "db:generate": "npm run prisma:generate -w services/api",
     "db:push": "npm run prisma:push -w services/api",
