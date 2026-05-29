@@ -16,6 +16,7 @@ enum UserRole {
   KITCHEN_STAFF
   TEACHER
   STUDENT_PARENT
+  FOOD_SERVER
 }
 
 enum UserStatus {
@@ -90,6 +91,9 @@ model School {
   inventory       Inventory[]
   weeklyPlans     WeeklyPlan[]
   reports         Report[]
+  mealEvidences   MealEvidence[]
+  mealCalendars   MealCalendar[]
+  complianceReports ComplianceReport[]
 
   @@map("schools")
 }
@@ -353,3 +357,61 @@ model Report {
 
   @@map("reports")
 }
+
+model MealEvidence {
+  id           String   @id @default(cuid())
+  schoolId     String
+  imageUrl     String   @db.Text
+  thumbnailUrl String   @db.Text
+  uploadedBy   String
+  role         String
+  mealType     String
+  remarks      String?  @db.Text
+  status       String   @default("Submitted") // "Submitted" | "Reviewed" | "Approved" | "Rejected" | "Missing"
+  uploadDate   DateTime @default(now())
+  uploadTime   String
+
+  school       School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId, uploadDate])
+  @@map("meal_evidences")
+}
+
+model MealCalendar {
+  id                 String   @id @default(cuid())
+  schoolId           String
+  date               DateTime
+  uploadStatus       String   // "COMPLIANT" | "NON_COMPLIANT" | "HOLIDAY" | "BRING_OWN" | "NO_MEAL"
+  verificationStatus String   // "APPROVED" | "PENDING" | "REVIEWED" | "MISSING" | "NONE"
+
+  school             School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@unique([schoolId, date])
+  @@map("meal_calendars")
+}
+
+model ComplianceReport {
+  id            String   @id @default(cuid())
+  schoolId      String
+  score         Float
+  approvalRate  Float
+  missingMeals  Int
+  generatedAt   DateTime @default(now())
+
+  school        School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@map("compliance_reports")
+}
+
+model CommunicationLog {
+  id             String   @id @default(cuid())
+  sender         String
+  recipients     String[]
+  subject        String
+  message        String   @db.Text
+  deliveryStatus String   @default("SENT") // "SENT" | "FAILED" | "DRAFT" | "SCHEDULED"
+  timestamp      DateTime @default(now())
+
+  @@map("communication_logs")
+}
+

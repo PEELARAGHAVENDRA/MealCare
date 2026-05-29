@@ -6,7 +6,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: "SUPER_ADMIN" | "DISTRICT_ADMIN" | "NUTRITION_OFFICER" | "SCHOOL_HEAD" | "KITCHEN_STAFF" | "TEACHER" | "STUDENT_PARENT";
+  role: "SUPER_ADMIN" | "DISTRICT_ADMIN" | "NUTRITION_OFFICER" | "SCHOOL_HEAD" | "KITCHEN_STAFF" | "TEACHER" | "STUDENT_PARENT" | "FOOD_SERVER";
   schoolId: string | null;
   districtId: string | null;
   school?: {

@@ -19,7 +19,8 @@ import {
   ChefHat, 
   BookOpen, 
   Users, 
-  User as UserIcon 
+  User as UserIcon,
+  Camera
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -29,6 +30,7 @@ const ROLE_ICONS: Record<string, React.ComponentType<any>> = {
   "Nutrition Officer": Apple,
   "School Head": Award,
   "Kitchen Staff": ChefHat,
+  "Food Server": Camera,
   "Teacher User": BookOpen,
   "Student Parent": Users,
   "Student": UserIcon
@@ -314,21 +316,30 @@ export default function LoginPage() {
                     { name: "Nutrition Officer", email: "nutrition@district.gov" },
                     { name: "School Head", email: "head@school.gov" },
                     { name: "Kitchen Staff", email: "cook@school.gov" },
+                    { name: "Food Server", email: "server@school.gov" },
                     { name: "Teacher User", email: "teacher@school.gov" },
                     { name: "Student Parent", email: "parent@school.gov" },
                     { name: "Student", email: "student@school.gov" }
-                  ].map((demo) => (
-                    <button
-                      key={demo.name}
-                      type="button"
-                      onClick={() => handleDemoFill(demo.email)}
-                      className="rounded-lg border border-slate-200 bg-slate-50/50 py-1.5 px-2 text-left text-xs transition hover:border-gov-green hover:bg-white"
-                      disabled={isSubmitting}
-                    >
-                      <div className="font-bold text-slate-700 leading-tight truncate">{demo.name}</div>
-                      <div className="text-[9px] text-slate-500 truncate mt-0.5">{demo.email}</div>
-                    </button>
-                  ))}
+                  ].map((demo) => {
+                    const Icon = ROLE_ICONS[demo.name] || Camera;
+                    return (
+                      <button
+                        key={demo.name}
+                        type="button"
+                        onClick={() => handleDemoFill(demo.email)}
+                        className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/50 py-1.5 px-2 text-left text-xs transition hover:border-gov-green hover:bg-white active:scale-[0.98]"
+                        disabled={isSubmitting}
+                      >
+                        <div className="text-gov-green shrink-0">
+                          <Icon size={14} />
+                        </div>
+                        <div className="truncate min-w-0">
+                          <div className="font-bold text-slate-700 leading-tight truncate">{demo.name}</div>
+                          <div className="text-[9px] text-slate-500 truncate mt-0.5">{demo.email}</div>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </>
             )}

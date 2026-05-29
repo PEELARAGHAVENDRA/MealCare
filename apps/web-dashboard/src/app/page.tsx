@@ -491,11 +491,18 @@ export default function DashboardPage() {
     );
   }
 
-  const isStudent = user?.role === "STUDENT_PARENT";
+  const isStudent = user?.role === "STUDENT_PARENT" || user?.role === "TEACHER" || user?.role === "FOOD_SERVER" || user?.role === "KITCHEN_STAFF";
+
+  const getPortalTitle = () => {
+    if (user?.role === "FOOD_SERVER") return "Food Server Portal";
+    if (user?.role === "KITCHEN_STAFF") return "Kitchen Staff Portal";
+    if (user?.role === "TEACHER") return "Teacher Portal";
+    return "Student Nutrition Portal";
+  };
 
   if (isStudent) {
     return (
-      <AppShell title="Student Nutrition Portal" subtitle={stats.school?.name ?? "Student / Parent Dashboard"}>
+      <AppShell title={getPortalTitle()} subtitle={stats.school?.name ?? "Institution Dashboard"}>
         <div className="space-y-6">
           
           {weeklyPlanStatus === "HOLIDAY" && (

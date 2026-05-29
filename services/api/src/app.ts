@@ -11,6 +11,9 @@ import { iotRouter } from "./routes/iot";
 import { mealsRouter } from "./routes/meals";
 import { reportsRouter } from "./routes/reports";
 import { schoolsRouter } from "./routes/schools";
+import { evidenceRouter } from "./routes/evidence";
+import { complianceRouter } from "./routes/compliance";
+import { communicationRouter } from "./routes/communication";
 import { errorHandler } from "./middleware/error-handler";
 import { swaggerSpec } from "./lib/swagger";
 
@@ -33,5 +36,8 @@ app.use(analyticsRouter);
 app.use(aiRouter);
 app.use(reportsRouter);
 app.use(iotRouter);
+app.use(evidenceRouter);
+app.use(complianceRouter);
+app.use(communicationRouter);
 
 app.use(errorHandler);

@@ -11,7 +11,12 @@ const ROUTE_PERMISSIONS: Record<string, string[]> = {
   "/meals": ["SUPER_ADMIN", "SCHOOL_HEAD", "KITCHEN_STAFF", "TEACHER"],
   "/planner": ["SUPER_ADMIN", "NUTRITION_OFFICER", "KITCHEN_STAFF"],
   "/schools": ["SUPER_ADMIN", "DISTRICT_ADMIN"],
-  "/reports": ["SUPER_ADMIN", "DISTRICT_ADMIN", "NUTRITION_OFFICER", "SCHOOL_HEAD"]
+  "/reports": ["SUPER_ADMIN", "DISTRICT_ADMIN", "NUTRITION_OFFICER", "SCHOOL_HEAD"],
+  "/evidence": ["SUPER_ADMIN", "SCHOOL_HEAD", "KITCHEN_STAFF", "FOOD_SERVER"],
+  "/calendar": ["SUPER_ADMIN", "DISTRICT_ADMIN", "NUTRITION_OFFICER", "SCHOOL_HEAD", "KITCHEN_STAFF", "TEACHER", "STUDENT_PARENT", "FOOD_SERVER"],
+  "/compliance": ["SUPER_ADMIN", "DISTRICT_ADMIN", "NUTRITION_OFFICER", "SCHOOL_HEAD"],
+  "/communication": ["SUPER_ADMIN", "DISTRICT_ADMIN", "NUTRITION_OFFICER"],
+  "/schools-monitoring": ["SUPER_ADMIN", "DISTRICT_ADMIN", "NUTRITION_OFFICER"]
 };
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {

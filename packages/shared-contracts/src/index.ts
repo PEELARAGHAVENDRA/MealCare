@@ -5,7 +5,8 @@ export const roles = [
   "SCHOOL_HEAD",
   "KITCHEN_STAFF",
   "TEACHER",
-  "STUDENT_PARENT"
+  "STUDENT_PARENT",
+  "FOOD_SERVER"
 ] as const;
 
 export type UserRole = (typeof roles)[number];

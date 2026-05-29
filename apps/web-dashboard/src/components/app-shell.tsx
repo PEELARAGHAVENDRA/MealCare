@@ -15,13 +15,23 @@ import {
   GraduationCap,
   Menu,
   X,
-  Settings
+  Settings,
+  Camera,
+  Calendar,
+  Award,
+  Mail,
+  Building2
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { useDemo } from "@/lib/DemoContext";
 
 const navItems = [
-  { href: "/", label: "Dashboard", icon: BarChart3, roles: ["SUPER_ADMIN", "DISTRICT_ADMIN", "NUTRITION_OFFICER", "SCHOOL_HEAD", "KITCHEN_STAFF", "TEACHER", "STUDENT_PARENT"] },
+  { href: "/", label: "Dashboard", icon: BarChart3, roles: ["SUPER_ADMIN", "DISTRICT_ADMIN", "NUTRITION_OFFICER", "SCHOOL_HEAD", "KITCHEN_STAFF", "TEACHER", "STUDENT_PARENT", "FOOD_SERVER"] },
+  { href: "/evidence", label: "Meal Evidence", icon: Camera, roles: ["SUPER_ADMIN", "SCHOOL_HEAD", "KITCHEN_STAFF", "FOOD_SERVER"] },
+  { href: "/calendar", label: "Meal Calendar", icon: Calendar, roles: ["SUPER_ADMIN", "DISTRICT_ADMIN", "NUTRITION_OFFICER", "SCHOOL_HEAD", "KITCHEN_STAFF", "TEACHER", "STUDENT_PARENT", "FOOD_SERVER"] },
+  { href: "/compliance", label: "Compliance Center", icon: Award, roles: ["SUPER_ADMIN", "DISTRICT_ADMIN", "NUTRITION_OFFICER", "SCHOOL_HEAD"] },
+  { href: "/communication", label: "Communication Center", icon: Mail, roles: ["SUPER_ADMIN", "DISTRICT_ADMIN", "NUTRITION_OFFICER"] },
+  { href: "/schools-monitoring", label: "Schools Directory", icon: Building2, roles: ["SUPER_ADMIN", "DISTRICT_ADMIN", "NUTRITION_OFFICER"] },
   { href: "/meals", label: "Meal Tracking", icon: ClipboardList, roles: ["SUPER_ADMIN", "SCHOOL_HEAD", "KITCHEN_STAFF", "TEACHER"] },
   { href: "/planner", label: "AI Planner", icon: Sparkles, roles: ["SUPER_ADMIN", "NUTRITION_OFFICER", "KITCHEN_STAFF"] },
   { href: "/schools", label: "Institutions & Codes", icon: MapPinned, roles: ["SUPER_ADMIN", "DISTRICT_ADMIN"] },
