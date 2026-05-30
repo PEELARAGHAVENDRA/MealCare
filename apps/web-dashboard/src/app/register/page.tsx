@@ -303,8 +303,9 @@ export default function RegisterPage() {
               <p className="mt-1.5 text-xs text-slate-500 font-semibold leading-relaxed">
                 We have simulated sending a verification code to <span className="text-slate-800 font-bold">{email}</span>.
               </p>
-              <div className="mt-2.5 inline-block rounded-lg bg-emerald-50/70 border border-emerald-100 px-3 py-1 text-[11px] font-bold text-gov-green">
-                Check your browser console log to retrieve OTP
+              <div className="mt-2.5 flex flex-col items-center gap-1.5 rounded-lg bg-emerald-50/70 border border-emerald-100 p-2.5 text-[11px] font-bold text-gov-green">
+                <span>Use the development code below or check console:</span>
+                <span className="rounded bg-white px-3 py-1 text-sm font-mono text-slate-800 border border-emerald-200 tracking-wider select-all">{generatedOtp}</span>
               </div>
             </div>
 
