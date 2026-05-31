@@ -19,6 +19,13 @@ complianceRouter.get(
   asyncHandler(async (req, res) => {
     const { schoolId } = req.params;
 
+    // RBAC: Check if the user is authorized to access this school's compliance calendar
+    const userRole = req.user?.role;
+    const isGlobalMonitor = ["SUPER_ADMIN", "DISTRICT_ADMIN", "NUTRITION_OFFICER"].includes(userRole || "");
+    if (!isGlobalMonitor && req.user?.schoolId !== schoolId) {
+      return res.status(403).json({ error: "Access denied. You are not authorized to view details for this institution." });
+    }
+
     // Get compliance reports over time (limit to 10)
     const reports = await prisma.complianceReport.findMany({
       where: { schoolId },

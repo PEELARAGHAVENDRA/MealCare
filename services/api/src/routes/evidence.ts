@@ -71,6 +71,14 @@ evidenceRouter.get(
   "/evidence/school/:schoolId",
   asyncHandler(async (req, res) => {
     const { schoolId } = req.params;
+
+    // RBAC: Check if the user is authorized to access this school's evidence timeline
+    const userRole = req.user?.role;
+    const isGlobalMonitor = ["SUPER_ADMIN", "DISTRICT_ADMIN", "NUTRITION_OFFICER"].includes(userRole || "");
+    if (!isGlobalMonitor && req.user?.schoolId !== schoolId) {
+      return res.status(403).json({ error: "Access denied. You are not authorized to view details for this institution." });
+    }
+
     const evidences = await prisma.mealEvidence.findMany({
       where: { schoolId },
       orderBy: { uploadDate: "desc" }
@@ -87,7 +95,6 @@ evidenceRouter.get(
 // PATCH /evidence/:id/status
 evidenceRouter.patch(
   "/evidence/:id/status",
-  requireRole("SCHOOL_HEAD", "NUTRITION_OFFICER", "SUPER_ADMIN", "DISTRICT_ADMIN"),
   asyncHandler(async (req, res) => {
     const { id } = req.params;
     const { status, remarks } = req.body; // Approved, Rejected, Reviewed
@@ -128,7 +135,6 @@ evidenceRouter.patch(
 // GET /evidence/stats
 evidenceRouter.get(
   "/evidence/stats",
-  requireRole("SUPER_ADMIN", "DISTRICT_ADMIN", "NUTRITION_OFFICER", "SCHOOL_HEAD"),
   asyncHandler(async (req, res) => {
     const today = startOfDay(new Date());
 

@@ -63,11 +63,20 @@ export default function CalendarPage() {
   const [submittingAction, setSubmittingAction] = useState(false);
   const [zoomImage, setZoomImage] = useState<string | null>(null);
 
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+
   const userRole = user?.role || "FOOD_SERVER";
-  const isApprover = ["SUPER_ADMIN", "NUTRITION_OFFICER", "SCHOOL_HEAD"].includes(userRole);
+  const isApprover = true; // All inside features should be visible and usable by everyone
   const canSwitchSchools = ["SUPER_ADMIN", "DISTRICT_ADMIN", "NUTRITION_OFFICER"].includes(userRole);
 
   const activeSchoolId = selectedSchool || user?.schoolId || "demo-school";
+
+  // Lock school-level roles to their registered institution
+  useEffect(() => {
+    if (!canSwitchSchools && user?.schoolId) {
+      setSelectedSchool(user.schoolId);
+    }
+  }, [user, canSwitchSchools]);
 
   // Format month name
   const monthName = currentDate.toLocaleString("en-US", { month: "long" });
@@ -85,7 +94,7 @@ export default function CalendarPage() {
         setSelectedSchool("cmpppkkv70000b511lbz008lr");
       } else {
         try {
-          const res = await fetch("http://localhost:4000/schools", {
+          const res = await fetch(`${apiUrl}/schools`, {
             headers: {
               "Authorization": `Bearer ${localStorage.getItem("token")}`
             }
@@ -172,7 +181,7 @@ export default function CalendarPage() {
     } else {
       try {
         // Query live backend
-        const res = await fetch(`http://localhost:4000/api/compliance/school/${activeSchoolId}`, {
+        const res = await fetch(`${apiUrl}/api/compliance/school/${activeSchoolId}`, {
           headers: {
             "Authorization": `Bearer ${localStorage.getItem("token")}`
           }
@@ -238,7 +247,7 @@ export default function CalendarPage() {
     } else {
       // Query database
       try {
-        const res = await fetch(`http://localhost:4000/api/evidence/school/${activeSchoolId}`, {
+        const res = await fetch(`${apiUrl}/api/evidence/school/${activeSchoolId}`, {
           headers: {
             "Authorization": `Bearer ${localStorage.getItem("token")}`
           }
@@ -270,7 +279,7 @@ export default function CalendarPage() {
       setSubmittingAction(false);
     } else {
       try {
-        const res = await fetch(`http://localhost:4000/api/evidence/${evidenceId}/status`, {
+        const res = await fetch(`${apiUrl}/api/evidence/${evidenceId}/status`, {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
