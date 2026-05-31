@@ -177,6 +177,7 @@ export default function RegisterPage() {
                   <option value="STUDENT_PARENT">Student / Parent</option>
                   <option value="TEACHER">Teacher</option>
                   <option value="KITCHEN_STAFF">Kitchen Staff</option>
+                  <option value="FOOD_SERVER">Food Server</option>
                   <option value="SCHOOL_HEAD">School Head</option>
                   <option value="NUTRITION_OFFICER">Nutrition Officer</option>
                   <option value="DISTRICT_ADMIN">District Admin</option>
