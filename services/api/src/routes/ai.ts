@@ -96,7 +96,7 @@ aiRouter.post(
 
 aiRouter.post(
   "/ai/meal-plan",
-  requireRole("SCHOOL_HEAD", "DISTRICT_ADMIN"),
+  requireRole("SCHOOL_HEAD", "SUPER_ADMIN"),
   asyncHandler(async (req, res) => {
     const result = await mealOptimizer(req.body);
 
@@ -330,7 +330,7 @@ aiRouter.get("/ai/weekly-plan", async (req, res, next) => {
 // ── POST /ai/weekly-plan/save ─────────────────────────────────────────────────
 aiRouter.post(
   "/ai/weekly-plan/save",
-  requireRole("KITCHEN_STAFF", "SUPER_ADMIN", "NUTRITION_OFFICER", "SCHOOL_HEAD"),
+  requireRole("KITCHEN_STAFF", "SUPER_ADMIN", "SCHOOL_HEAD"),
   async (req, res, next) => {
     try {
       let { schoolId, weekStartDate, schedule, status } = req.body;

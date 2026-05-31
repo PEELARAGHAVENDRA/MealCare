@@ -114,7 +114,12 @@ mealsRouter.get("/schools/:schoolId/dashboard/today", requireSchoolAccess((req) 
     const served = meals.reduce((sum, meal) => sum + meal.servedCount, 0);
     const remaining = meals.reduce((sum, meal) => sum + (meal.foodWastage?.leftoverQuantity ?? 0), 0);
 
-    res.json({ school, meals, attendance, prepared, served, remaining });
+    let totalUsersCount: number | undefined = undefined;
+    if (req.user?.role === "SUPER_ADMIN") {
+      totalUsersCount = await prisma.user.count();
+    }
+
+    res.json({ school, meals, attendance, prepared, served, remaining, totalUsersCount });
   } catch (error) {
     next(error);
   }

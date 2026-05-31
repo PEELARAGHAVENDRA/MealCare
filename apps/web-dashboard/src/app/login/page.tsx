@@ -28,7 +28,7 @@ const ROLE_ICONS: Record<string, React.ComponentType<any>> = {
   "Super Admin": ShieldCheck,
   "District Admin": Map,
   "Nutrition Officer": Apple,
-  "School Head": Award,
+  "School/College Head": Award,
   "Kitchen Staff": ChefHat,
   "Food Server": Camera,
   "Teacher User": BookOpen,
@@ -47,6 +47,28 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [stats, setStats] = useState({
+    attendanceRate: 94.7,
+    nutritionScore: 88,
+    averageWastage: 5.2
+  });
+
+  React.useEffect(() => {
+    async function fetchPublicStats() {
+      try {
+        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+        const res = await fetch(`${apiBaseUrl}/auth/public-stats`);
+        if (res.ok) {
+          const data = await res.json();
+          setStats(data);
+        }
+      } catch (err) {
+        console.warn("Failed to fetch public stats from API, using static defaults:", err);
+      }
+    }
+    fetchPublicStats();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,7 +123,7 @@ export default function LoginPage() {
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white overflow-hidden shadow-sm">
             <img src="/logo.png" alt="MealCare logo" className="h-full w-full object-cover" />
           </div>
-          <span className="text-xl font-bold tracking-tight">MealCare AI</span>
+          <span className="text-xl font-bold tracking-tight">Meal care</span>
         </div>
 
         {/* Dynamic Graphics & Analytics Preview */}
@@ -120,7 +142,7 @@ export default function LoginPage() {
                 <TrendingUp size={16} />
                 <span className="text-xs font-semibold uppercase tracking-wider">Attendance Rate</span>
               </div>
-              <p className="mt-2 text-2xl font-bold">94.7%</p>
+              <p className="mt-2 text-2xl font-bold">{stats.attendanceRate}%</p>
               <p className="text-[10px] text-slate-400 mt-1">Average district participation</p>
             </div>
 
@@ -129,7 +151,7 @@ export default function LoginPage() {
                 <Sparkles size={16} />
                 <span className="text-xs font-semibold uppercase tracking-wider">Nutrition Target</span>
               </div>
-              <p className="mt-2 text-2xl font-bold">Met (88/100)</p>
+              <p className="mt-2 text-2xl font-bold">Met ({stats.nutritionScore}/100)</p>
               <p className="text-[10px] text-slate-400 mt-1">High protein & iron score</p>
             </div>
 
@@ -139,7 +161,7 @@ export default function LoginPage() {
                   <AlertTriangle size={16} />
                   <span className="text-xs font-semibold uppercase tracking-wider">Wastage Reduction</span>
                 </div>
-                <p className="mt-1 text-lg font-bold">5.2% Daily Average</p>
+                <p className="mt-1 text-lg font-bold">{stats.averageWastage}% Daily Average</p>
               </div>
               <span className="text-xs font-semibold bg-emerald-500/20 text-emerald-300 px-2 py-1 rounded-full border border-emerald-500/30">
                 -3.4% this week
@@ -163,7 +185,7 @@ export default function LoginPage() {
               <img src="/logo.png" alt="MealCare logo" className="h-full w-full object-cover" />
             </div>
             <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
-              MealCare <span className="text-gov-green">AI</span>
+              Meal care
             </h1>
             <p className="mt-2 text-sm text-slate-500 font-medium">
               Smart Mid-Day Meal Nutrition Platform
@@ -314,7 +336,7 @@ export default function LoginPage() {
                     { name: "Super Admin", email: "super@mealscare.gov" },
                     { name: "District Admin", email: "district@district.gov" },
                     { name: "Nutrition Officer", email: "nutrition@district.gov" },
-                    { name: "School Head", email: "head@school.gov" },
+                    { name: "School/College Head", email: "head@school.gov" },
                     { name: "Kitchen Staff", email: "cook@school.gov" },
                     { name: "Food Server", email: "server@school.gov" },
                     { name: "Teacher User", email: "teacher@school.gov" },

@@ -11,11 +11,12 @@ analyticsRouter.use(requireAuth);
 analyticsRouter.get("/analytics/school/:schoolId", requireSchoolAccess((req) => req.params.schoolId), async (req, res, next) => {
   try {
     const schoolId = req.params.schoolId;
-    const [meals, attendance, wastage, recommendations] = await Promise.all([
+    const [meals, attendance, wastage, recommendations, weeklyPlans] = await Promise.all([
       prisma.meal.findMany({ where: { schoolId }, orderBy: { date: "asc" }, take: 30 }),
       prisma.attendance.findMany({ where: { schoolId }, orderBy: { date: "asc" }, take: 30 }),
       prisma.foodWastage.findMany({ where: { meal: { schoolId } }, include: { meal: true }, take: 30 }),
-      prisma.aiRecommendation.findMany({ where: { schoolId }, orderBy: { createdAt: "desc" }, take: 10 })
+      prisma.aiRecommendation.findMany({ where: { schoolId }, orderBy: { createdAt: "desc" }, take: 10 }),
+      prisma.weeklyPlan.findMany({ where: { schoolId }, orderBy: { weekStartDate: "asc" }, take: 30 })
     ]);
 
     const totalPrepared = meals.reduce((sum, meal) => sum + meal.preparedCount, 0);
@@ -25,8 +26,12 @@ analyticsRouter.get("/analytics/school/:schoolId", requireSchoolAccess((req) => 
       date: item.date,
       percentage: calculateMealParticipation(item.presentStudents, item.mealParticipants)
     }));
+    const nutritionTrend = weeklyPlans.map(plan => ({
+      date: new Date(plan.weekStartDate).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+      score: plan.weeklyNutritionScore
+    }));
 
-    res.json({ totalPrepared, totalServed, averageWaste, mealParticipation, meals, wastage, recommendations });
+    res.json({ totalPrepared, totalServed, averageWaste, mealParticipation, meals, wastage, recommendations, nutritionTrend });
   } catch (error) {
     next(error);
   }

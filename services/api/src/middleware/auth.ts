@@ -1,5 +1,4 @@
 import { NextFunction, Request, Response } from "express";
-import { UserRole } from "@prisma/client";
 import { verifyToken, JwtUser } from "../lib/auth";
 
 declare global {
@@ -26,7 +25,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
   }
 }
 
-export function requireRole(...roles: UserRole[]) {
+export function requireRole(...roles: string[]) {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user || !roles.includes(req.user.role)) {
       return res.status(403).json({ error: "Insufficient permissions" });

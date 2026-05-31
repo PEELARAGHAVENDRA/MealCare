@@ -33,12 +33,13 @@ const navItems = [
   { href: "/communication", label: "Communication Center", icon: Mail, roles: ["SUPER_ADMIN", "DISTRICT_ADMIN", "NUTRITION_OFFICER"] },
   { href: "/schools-monitoring", label: "Schools Directory", icon: Building2, roles: ["SUPER_ADMIN", "DISTRICT_ADMIN", "NUTRITION_OFFICER"] },
   { href: "/meals", label: "Meal Tracking", icon: ClipboardList, roles: ["SUPER_ADMIN", "SCHOOL_HEAD", "KITCHEN_STAFF", "TEACHER"] },
-  { href: "/planner", label: "AI Planner", icon: Sparkles, roles: ["SUPER_ADMIN", "NUTRITION_OFFICER", "KITCHEN_STAFF"] },
+  { href: "/planner", label: "AI Planner", icon: Sparkles, roles: ["SUPER_ADMIN", "KITCHEN_STAFF", "SCHOOL_HEAD"] },
   { href: "/schools", label: "Institutions & Codes", icon: MapPinned, roles: ["SUPER_ADMIN", "DISTRICT_ADMIN"] },
   { href: "/reports", label: "Reports", icon: FileText, roles: ["SUPER_ADMIN", "DISTRICT_ADMIN", "NUTRITION_OFFICER", "SCHOOL_HEAD"] }
 ];
 
 function formatRole(role: string) {
+  if (role === "SCHOOL_HEAD") return "School/College Head";
   return role.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
@@ -79,7 +80,7 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white overflow-hidden shadow-sm">
             <img src="/logo.png" alt="MealCare logo" className="h-full w-full object-cover" />
           </div>
-          <span className="text-lg font-extrabold text-slate-900 tracking-tight">MealCare AI</span>
+          <span className="text-lg font-extrabold text-slate-900 tracking-tight">Meal care</span>
         </div>
 
         {/* Navigation List */}
@@ -145,7 +146,7 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white overflow-hidden shadow-sm">
             <img src="/logo.png" alt="MealCare logo" className="h-full w-full object-cover" />
           </div>
-          <span className="text-sm font-extrabold text-slate-900 tracking-tight">MealCare AI</span>
+          <span className="text-sm font-extrabold text-slate-900 tracking-tight">Meal care</span>
         </div>
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}

@@ -19,6 +19,32 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [roles, setRoles] = useState<{ value: string; label: string }[]>([
+    { value: "STUDENT_PARENT", label: "Student / Parent" },
+    { value: "TEACHER", label: "Teacher" },
+    { value: "KITCHEN_STAFF", label: "Kitchen Staff" },
+    { value: "FOOD_SERVER", label: "Food Server" },
+    { value: "SCHOOL_HEAD", label: "School/College Head" },
+    { value: "NUTRITION_OFFICER", label: "Nutrition Officer" },
+    { value: "DISTRICT_ADMIN", label: "District Admin" }
+  ]);
+
+  React.useEffect(() => {
+    async function fetchRoles() {
+      try {
+        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+        const res = await fetch(`${apiBaseUrl}/auth/roles`);
+        if (res.ok) {
+          const data = await res.json();
+          setRoles(data);
+        }
+      } catch (err) {
+        console.warn("Failed to fetch roles from API, using static defaults:", err);
+      }
+    }
+    fetchRoles();
+  }, []);
+
   // OTP Verification States
   const [otpModalOpen, setOtpModalOpen] = useState(false);
   const [generatedOtp, setGeneratedOtp] = useState("");
@@ -174,13 +200,11 @@ export default function RegisterPage() {
                   className="block w-full mt-1 rounded-xl border border-slate-200 bg-white py-3 px-3 text-sm text-slate-800 outline-none transition focus:border-gov-green focus:ring-2 focus:ring-gov-green/10"
                   disabled={isSubmitting}
                 >
-                  <option value="STUDENT_PARENT">Student / Parent</option>
-                  <option value="TEACHER">Teacher</option>
-                  <option value="KITCHEN_STAFF">Kitchen Staff</option>
-                  <option value="FOOD_SERVER">Food Server</option>
-                  <option value="SCHOOL_HEAD">School Head</option>
-                  <option value="NUTRITION_OFFICER">Nutrition Officer</option>
-                  <option value="DISTRICT_ADMIN">District Admin</option>
+                  {roles.map((r) => (
+                    <option key={r.value} value={r.value}>
+                      {r.label}
+                    </option>
+                  ))}
                 </select>
               </div>
 

@@ -1,10 +1,9 @@
 import jwt from "jsonwebtoken";
-import { UserRole } from "@prisma/client";
 import { env } from "./env";
 
 export type JwtUser = {
   sub: string;
-  role: UserRole;
+  role: string;
   schoolId?: string | null;
   districtId?: string | null;
 };

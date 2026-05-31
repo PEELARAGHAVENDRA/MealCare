@@ -57,7 +57,7 @@ model User {
   phone        String?
   email        String     @unique
   passwordHash String
-  role         UserRole
+  role         String
   schoolId     String?
   districtId   String?
   status       UserStatus @default(ACTIVE)
@@ -71,6 +71,15 @@ model User {
 
   @@index([role, schoolId])
   @@map("users")
+}
+
+model CustomRole {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  label     String
+  createdAt DateTime @default(now())
+
+  @@map("custom_roles")
 }
 
 model School {

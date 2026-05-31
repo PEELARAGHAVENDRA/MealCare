@@ -9,7 +9,7 @@ const PUBLIC_PATHS = ["/login", "/register", "/forgot-password", "/reset-passwor
 // Define RBAC allowed roles per path
 const ROUTE_PERMISSIONS: Record<string, string[]> = {
   "/meals": ["SUPER_ADMIN", "SCHOOL_HEAD", "KITCHEN_STAFF", "TEACHER"],
-  "/planner": ["SUPER_ADMIN", "NUTRITION_OFFICER", "KITCHEN_STAFF"],
+  "/planner": ["SUPER_ADMIN", "KITCHEN_STAFF", "SCHOOL_HEAD"],
   "/schools": ["SUPER_ADMIN", "DISTRICT_ADMIN"],
   "/reports": ["SUPER_ADMIN", "DISTRICT_ADMIN", "NUTRITION_OFFICER", "SCHOOL_HEAD"],
   "/evidence": ["SUPER_ADMIN", "SCHOOL_HEAD", "KITCHEN_STAFF", "FOOD_SERVER"],

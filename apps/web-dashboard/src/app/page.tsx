@@ -19,7 +19,8 @@ import {
   TrendingUp,
   AlertCircle,
   ChevronRight,
-  Info
+  Info,
+  Users
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { TrendLine, WasteBar } from "@/components/charts";
@@ -63,6 +64,72 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [weeklyPlan, setWeeklyPlan] = useState<ScheduleItem[]>(DEFAULT_SCHEDULE);
   const [weeklyPlanStatus, setWeeklyPlanStatus] = useState<string>("DRAFT");
+
+  const isSuperAdmin = user?.role === "SUPER_ADMIN";
+  const [customRoles, setCustomRoles] = useState<{ value: string; label: string }[]>([]);
+  const [newRoleName, setNewRoleName] = useState("");
+  const [newRoleLabel, setNewRoleLabel] = useState("");
+  const [roleSuccess, setRoleSuccess] = useState<string | null>(null);
+  const [roleError, setRoleError] = useState<string | null>(null);
+  const [addingRole, setAddingRole] = useState(false);
+
+  useEffect(() => {
+    if (isSuperAdmin) {
+      loadCustomRoles();
+    }
+  }, [user]);
+
+  async function loadCustomRoles() {
+    try {
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      const res = await fetch(`${apiBaseUrl}/auth/roles`);
+      if (res.ok) {
+        const data = await res.json();
+        setCustomRoles(data);
+      }
+    } catch (err) {
+      console.warn("Failed to load custom roles:", err);
+    }
+  }
+
+  const handleAddRole = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setRoleError(null);
+    setRoleSuccess(null);
+    if (!newRoleName.trim() || !newRoleLabel.trim()) {
+      setRoleError("Please fill in both fields");
+      return;
+    }
+
+    setAddingRole(true);
+    try {
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      const res = await fetch(`${apiBaseUrl}/auth/roles`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("token")}`
+        },
+        body: JSON.stringify({
+          name: newRoleName,
+          label: newRoleLabel
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setRoleSuccess(`Role "${newRoleLabel}" added successfully!`);
+        setNewRoleName("");
+        setNewRoleLabel("");
+        loadCustomRoles();
+      } else {
+        setRoleError(data.error || "Failed to add role");
+      }
+    } catch (err) {
+      setRoleError("Network error adding role");
+    } finally {
+      setAddingRole(false);
+    }
+  };
 
   const renderMealCell = (val: string) => {
     if (!val) return <span className="text-slate-400 italic">Not scheduled</span>;
@@ -1123,10 +1190,14 @@ export default function DashboardPage() {
       }))
     : wasteTrend;
 
-  const nutritionTrendData = nutritionTrend;
+  const nutritionTrendData = analytics.nutritionTrend && analytics.nutritionTrend.length > 0
+    ? analytics.nutritionTrend
+    : nutritionTrend;
 
   const summaryCards = [
-    { title: "Student Count", value: String(stats.school?.studentCount ?? 0), detail: "Registered for meals", icon: <ClipboardCheck size={22} /> },
+    isSuperAdmin
+      ? { title: "Total Users", value: String(stats.totalUsersCount ?? 185), detail: "Registered in Meal care", icon: <Users size={22} /> }
+      : { title: "Student Count", value: String(stats.school?.studentCount ?? 0), detail: "Registered for meals", icon: <ClipboardCheck size={22} /> },
     { title: "Meals Prepared", value: String(stats.prepared), detail: "Today", icon: <Utensils size={22} /> },
     { title: "Meals Served", value: String(stats.served), detail: `${servedPercent}% of prepared`, icon: <BarChart3 size={22} /> },
     { title: "Remaining Food", value: String(stats.remaining), detail: `${wastePercent}% waste`, icon: <AlertTriangle size={22} /> }
@@ -1231,6 +1302,69 @@ export default function DashboardPage() {
             </table>
           </div>
         </section>
+
+        {isSuperAdmin && (
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="border-b border-slate-100 pb-4 mb-4">
+              <h2 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+                <Users className="text-gov-green" size={18} />
+                Role Management Center
+              </h2>
+              <p className="text-xs font-semibold text-slate-500 mt-0.5">Define new organizational roles that users can register under</p>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-2">
+              <form onSubmit={handleAddRole} className="space-y-4">
+                <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Add Custom Role</h3>
+                {roleError && <div className="p-3 text-xs font-bold text-red-800 bg-red-50 border border-red-200 rounded-xl">{roleError}</div>}
+                {roleSuccess && <div className="p-3 text-xs font-bold text-green-800 bg-green-50 border border-green-200 rounded-xl">{roleSuccess}</div>}
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">Role ID / Name</label>
+                    <input
+                      type="text"
+                      value={newRoleName}
+                      onChange={(e) => setNewRoleName(e.target.value)}
+                      className="block w-full mt-1 rounded-xl border border-slate-200 bg-white py-2 px-3 text-sm text-slate-800 placeholder-slate-400 outline-none transition focus:border-gov-green"
+                      placeholder="e.g. VISITOR"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">Display Label</label>
+                    <input
+                      type="text"
+                      value={newRoleLabel}
+                      onChange={(e) => setNewRoleLabel(e.target.value)}
+                      className="block w-full mt-1 rounded-xl border border-slate-200 bg-white py-2 px-3 text-sm text-slate-800 placeholder-slate-400 outline-none transition focus:border-gov-green"
+                      placeholder="e.g. Visitor"
+                      required
+                    />
+                  </div>
+                </div>
+                <button
+                  type="submit"
+                  disabled={addingRole}
+                  className="rounded-xl bg-gov-green px-5 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-800 transition active:scale-[0.98]"
+                >
+                  {addingRole ? "Adding Role..." : "Add Role"}
+                </button>
+              </form>
+
+              <div>
+                <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">System & Custom Roles</h3>
+                <div className="flex flex-wrap gap-2 max-h-[160px] overflow-y-auto pr-1">
+                  {customRoles.map((r) => (
+                    <span key={r.value} className="inline-flex items-center rounded-lg bg-slate-50 border border-slate-200 px-2.5 py-1 text-xs font-bold text-slate-700">
+                      {r.label} <span className="text-[9px] text-slate-400 font-normal ml-1">({r.value})</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
       </div>
     </AppShell>
   );

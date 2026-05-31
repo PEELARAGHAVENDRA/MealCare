@@ -3,6 +3,7 @@ export type DashboardData = {
   prepared: number;
   served: number;
   remaining: number;
+  totalUsersCount?: number;
 };
 
 // Static fallbacks in case of network issues or missing context
@@ -10,7 +11,8 @@ export const demoDashboard: DashboardData = {
   school: { name: "Government Primary School Nandipur", studentCount: 240 },
   prepared: 230,
   served: 218,
-  remaining: 12
+  remaining: 12,
+  totalUsersCount: 185
 };
 
 export const attendanceTrend = [
@@ -59,7 +61,8 @@ export async function fetchTodayStats(schoolId: string): Promise<DashboardData> 
       school: data.school ? { name: data.school.name, studentCount: data.school.studentCount } : null,
       prepared: data.prepared || 0,
       served: data.served || 0,
-      remaining: data.remaining || 0
+      remaining: data.remaining || 0,
+      totalUsersCount: data.totalUsersCount
     };
   } catch (error) {
     console.warn("API today stats error, using mock fallback:", error);
@@ -75,6 +78,7 @@ export interface AnalyticsResponse {
   meals: any[];
   wastage: any[];
   recommendations: any[];
+  nutritionTrend?: { date: string; score: number }[];
 }
 
 export async function fetchSchoolAnalytics(schoolId: string): Promise<AnalyticsResponse> {
@@ -94,7 +98,8 @@ export async function fetchSchoolAnalytics(schoolId: string): Promise<AnalyticsR
       })),
       meals: data.meals || [],
       wastage: data.wastage || [],
-      recommendations: data.recommendations || []
+      recommendations: data.recommendations || [],
+      nutritionTrend: data.nutritionTrend || []
     };
   } catch (error) {
     console.warn("API school analytics error, returning default format:", error);
@@ -105,7 +110,8 @@ export async function fetchSchoolAnalytics(schoolId: string): Promise<AnalyticsR
       mealParticipation: attendanceTrend,
       meals: [],
       wastage: [],
-      recommendations: []
+      recommendations: [],
+      nutritionTrend: []
     };
   }
 }

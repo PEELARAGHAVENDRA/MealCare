@@ -2,7 +2,7 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import { prisma } from "../lib/prisma";
 import { signToken } from "../lib/auth";
-import { requireAuth } from "../middleware/auth";
+import { requireAuth, requireRole } from "../middleware/auth";
 import { validateBody } from "../middleware/validate";
 import { loginSchema } from "../schemas";
 
@@ -77,6 +77,110 @@ authRouter.get("/me", requireAuth, async (req, res, next) => {
       }
     });
     res.json(user);
+  } catch (error) {
+    next(error);
+  }
+});
+
+authRouter.get("/roles", async (req, res, next) => {
+  try {
+    const defaultRoles = [
+      { value: "STUDENT_PARENT", label: "Student / Parent" },
+      { value: "TEACHER", label: "Teacher" },
+      { value: "KITCHEN_STAFF", label: "Kitchen Staff" },
+      { value: "FOOD_SERVER", label: "Food Server" },
+      { value: "SCHOOL_HEAD", label: "School/College Head" },
+      { value: "NUTRITION_OFFICER", label: "Nutrition Officer" },
+      { value: "DISTRICT_ADMIN", label: "District Admin" }
+    ];
+
+    const customRoles = await prisma.customRole.findMany({
+      orderBy: { name: "asc" }
+    });
+
+    const formattedCustom = customRoles.map(cr => ({
+      value: cr.name,
+      label: cr.label
+    }));
+
+    return res.json([...defaultRoles, ...formattedCustom]);
+  } catch (error) {
+    next(error);
+  }
+});
+
+authRouter.post("/roles", requireAuth, requireRole("SUPER_ADMIN"), async (req, res, next) => {
+  try {
+    const { name, label } = req.body;
+    if (!name || !label) {
+      return res.status(400).json({ error: "Missing name or label" });
+    }
+
+    const uppercaseName = name.trim().toUpperCase().replace(/\s+/g, "_");
+
+    const existing = await prisma.customRole.findUnique({
+      where: { name: uppercaseName }
+    });
+
+    if (existing) {
+      return res.status(400).json({ error: "Role already exists" });
+    }
+
+    const created = await prisma.customRole.create({
+      data: {
+        name: uppercaseName,
+        label: label.trim()
+      }
+    });
+
+    return res.status(201).json(created);
+  } catch (error) {
+    next(error);
+  }
+});
+
+authRouter.get("/public-stats", async (req, res, next) => {
+  try {
+    const [attendances, weeklyPlans, foodWastage] = await Promise.all([
+      prisma.attendance.findMany(),
+      prisma.weeklyPlan.findMany(),
+      prisma.foodWastage.findMany()
+    ]);
+
+    let attendanceRate = 94.7;
+    if (attendances.length > 0) {
+      const validRates = attendances
+        .map(a => {
+          const total = a.presentStudents + a.absentees;
+          return total > 0 ? (a.presentStudents / total) * 100 : 0;
+        })
+        .filter(r => r > 0);
+      if (validRates.length > 0) {
+        attendanceRate = validRates.reduce((sum, r) => sum + r, 0) / validRates.length;
+      }
+    }
+
+    let nutritionScore = 88.0;
+    if (weeklyPlans.length > 0) {
+      const scores = weeklyPlans.map(p => p.weeklyNutritionScore).filter(s => s > 0);
+      if (scores.length > 0) {
+        nutritionScore = scores.reduce((sum, s) => sum + s, 0) / scores.length;
+      }
+    }
+
+    let averageWastage = 5.2;
+    if (foodWastage.length > 0) {
+      const pcts = foodWastage.map(w => w.wastePercentage).filter(p => p > 0);
+      if (pcts.length > 0) {
+        averageWastage = pcts.reduce((sum, p) => sum + p, 0) / pcts.length;
+      }
+    }
+
+    return res.json({
+      attendanceRate: Number(attendanceRate.toFixed(1)),
+      nutritionScore: Math.round(nutritionScore),
+      averageWastage: Number(averageWastage.toFixed(1))
+    });
   } catch (error) {
     next(error);
   }

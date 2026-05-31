@@ -81,7 +81,7 @@ export default function PlannerPage() {
 
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  const canEdit = user?.role === "SUPER_ADMIN" || user?.role === "SCHOOL_HEAD" || user?.role === "NUTRITION_OFFICER" || user?.role === "KITCHEN_STAFF";
+  const canEdit = user?.role === "SUPER_ADMIN" || user?.role === "SCHOOL_HEAD" || user?.role === "KITCHEN_STAFF";
   const isPrincipalOrAdmin = user?.role === "SUPER_ADMIN" || user?.role === "SCHOOL_HEAD";
   const isSchool = !user?.school || user.school.type === "SCHOOL";
 
