@@ -17,3 +17,6 @@ venv/
 pubspec.lock
 .idea/
 .vscode/
+
+.vercel
+.env*
