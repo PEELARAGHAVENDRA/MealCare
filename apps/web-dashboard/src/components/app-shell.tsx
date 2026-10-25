@@ -52,9 +52,8 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const handleLogout = () => {
-    logout();
-    router.replace("/login");
+  const handleLogout = async () => {
+    await logout();
   };
 
   const userRole = user?.role || "STUDENT_PARENT";

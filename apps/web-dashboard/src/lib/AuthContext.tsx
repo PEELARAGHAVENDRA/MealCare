@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { useClerk } from "@clerk/nextjs";
 
 export interface User {
   id: string;
@@ -29,7 +30,7 @@ interface AuthContextType {
     schoolId?: string | null,
     districtId?: string | null
   ) => Promise<{ success: boolean; error?: string }>;
-  logout: () => void;
+  logout: () => Promise<void> | void;
 }
 
 const CLIENT_DEMO_USERS: Record<string, User> = {
@@ -128,6 +129,7 @@ const CLIENT_DEMO_USERS: Record<string, User> = {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const clerk = useClerk();
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -267,11 +269,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    localStorage.removeItem("demoMode");
     setToken(null);
     setUser(null);
+
+    try {
+      if (clerk && typeof clerk.signOut === "function") {
+        await clerk.signOut();
+      }
+    } catch (e) {
+      console.warn("Clerk signOut error:", e);
+    }
+
+    if (typeof window !== "undefined") {
+      window.location.href = "/login";
+    }
   };
 
   return (

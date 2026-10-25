@@ -3,7 +3,6 @@
 import React, { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/AuthContext";
-import { useUser } from "@clerk/nextjs";
 
 const PUBLIC_PATHS = ["/login", "/register", "/forgot-password", "/reset-password", "/unauthorized"];
 
@@ -22,7 +21,6 @@ const ROUTE_PERMISSIONS: Record<string, string[]> = {
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const { token, user, loading } = useAuth();
-  const { isLoaded: isClerkLoaded, isSignedIn: isClerkSignedIn } = useUser();
   const router = useRouter();
   const pathname = usePathname();
   const [mounted, setMounted] = React.useState(false);
@@ -32,8 +30,8 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   }, []);
 
   const isPublicPath = PUBLIC_PATHS.some((path) => pathname.startsWith(path));
-  const isAuthed = !!token || !!isClerkSignedIn;
-  const isAuthLoading = loading || !isClerkLoaded;
+  const isAuthed = !!token;
+  const isAuthLoading = loading;
 
   useEffect(() => {
     if (!mounted || isAuthLoading) return;
