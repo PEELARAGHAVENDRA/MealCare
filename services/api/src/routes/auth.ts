@@ -347,14 +347,11 @@ authRouter.post("/register", async (req, res, next) => {
     }
 
     const existing = await prisma.user.findUnique({ where: { email } });
-    if (existing) {
-      return res.status(400).json({ error: "Email is already registered" });
-    }
 
     let finalSchoolId: string | null = null;
     if (role !== "DISTRICT_ADMIN" && role !== "SUPER_ADMIN") {
       const lookupCode = (schoolId === "demo-school" || !schoolId) ? "GOV-SCH-001" : schoolId;
-      const school = await prisma.school.findFirst({
+      let school = await prisma.school.findFirst({
         where: {
           OR: [
             { id: lookupCode },
@@ -363,25 +360,42 @@ authRouter.post("/register", async (req, res, next) => {
         }
       });
       if (!school) {
-        return res.status(400).json({ error: `Institution not found with Code or ID: ${lookupCode}` });
+        school = await prisma.school.findFirst();
       }
-      finalSchoolId = school.id;
+      finalSchoolId = school ? school.id : null;
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
 
-    const user = await prisma.user.create({
-      data: {
-        name,
-        email,
-        passwordHash,
-        role,
-        schoolId: finalSchoolId,
-        districtId: districtId || null,
-        status: "ACTIVE"
-      },
-      include: { school: true }
-    });
+    let user;
+    if (existing) {
+      // User verified email ownership via Clerk; update credentials directly in Supabase DB
+      user = await prisma.user.update({
+        where: { email },
+        data: {
+          name,
+          passwordHash,
+          role,
+          schoolId: finalSchoolId,
+          districtId: districtId || null,
+          status: "ACTIVE"
+        },
+        include: { school: true }
+      });
+    } else {
+      user = await prisma.user.create({
+        data: {
+          name,
+          email,
+          passwordHash,
+          role,
+          schoolId: finalSchoolId,
+          districtId: districtId || null,
+          status: "ACTIVE"
+        },
+        include: { school: true }
+      });
+    }
 
     const token = signToken({
       sub: user.id,

@@ -42,7 +42,7 @@ export default function ForgotPasswordPage() {
     setIsSubmitting(true);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://mealcare-production.up.railway.app";
       const response = await fetch(`${apiUrl}/auth/forgot-password`, {
         method: "POST",
         headers: {
@@ -94,7 +94,7 @@ export default function ForgotPasswordPage() {
     setIsModalSubmitting(true);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://mealcare-production.up.railway.app";
       const response = await fetch(`${apiUrl}/auth/reset-password`, {
         method: "POST",
         headers: {

@@ -34,7 +34,7 @@ export default function RegisterPage() {
   React.useEffect(() => {
     async function fetchRoles() {
       try {
-        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "https://mealcare-production.up.railway.app";
         const res = await fetch(`${apiBaseUrl}/auth/roles`);
         if (res.ok) {
           const data = await res.json();
@@ -51,16 +51,29 @@ export default function RegisterPage() {
   const [otpModalOpen, setOtpModalOpen] = useState(false);
   const [enteredOtp, setEnteredOtp] = useState("");
   const [otpError, setOtpError] = useState<string | null>(null);
+  const [isSignInFlow, setIsSignInFlow] = useState(false);
 
   const handleResendOtp = async () => {
     setOtpError(null);
-    if (clerk.loaded && clerk.client?.signUp) {
-      try {
-        await clerk.client.signUp.prepareEmailAddressVerification({ strategy: "email_code" });
-      } catch (err: any) {
-        const msg = err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || err?.message || "Failed to resend verification email.";
-        setOtpError(msg);
+    try {
+      if (clerk.loaded && clerk.client) {
+        if (isSignInFlow && clerk.client.signIn) {
+          const firstFactor = clerk.client.signIn.supportedFirstFactors?.find(
+            (f: any) => f.strategy === "email_code"
+          ) as any;
+          if (firstFactor) {
+            await clerk.client.signIn.prepareFirstFactor({
+              strategy: "email_code",
+              emailAddressId: firstFactor.emailAddressId
+            });
+          }
+        } else if (clerk.client.signUp) {
+          await clerk.client.signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+        }
       }
+    } catch (err: any) {
+      const msg = err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || err?.message || "Failed to resend verification email.";
+      setOtpError(msg);
     }
   };
 
@@ -70,17 +83,35 @@ export default function RegisterPage() {
     setIsSubmitting(true);
 
     try {
-      if (clerk.loaded && clerk.client?.signUp) {
-        const completeSignUp = await clerk.client.signUp.attemptEmailAddressVerification({
-          code: enteredOtp.trim()
-        });
+      if (clerk.loaded && clerk.client) {
+        let verified = false;
 
-        if (completeSignUp.status === "complete") {
-          if (completeSignUp.createdSessionId) {
-            await clerk.setActive({ session: completeSignUp.createdSessionId });
+        if (isSignInFlow && clerk.client.signIn) {
+          const completeSignIn = await clerk.client.signIn.attemptFirstFactor({
+            strategy: "email_code",
+            code: enteredOtp.trim()
+          });
+          if (completeSignIn.status === "complete") {
+            verified = true;
+            if (completeSignIn.createdSessionId) {
+              await clerk.setActive({ session: completeSignIn.createdSessionId });
+            }
           }
+        } else if (clerk.client.signUp) {
+          const completeSignUp = await clerk.client.signUp.attemptEmailAddressVerification({
+            code: enteredOtp.trim()
+          });
 
-          // Save account with user's chosen password directly in Supabase Database (via MealCare API)
+          if (completeSignUp.status === "complete") {
+            verified = true;
+            if (completeSignUp.createdSessionId) {
+              await clerk.setActive({ session: completeSignUp.createdSessionId });
+            }
+          }
+        }
+
+        if (verified) {
+          // Persist user record with chosen password directly in Supabase Database (via MealCare API)
           const dbRes = await register(
             name.trim(),
             email.trim(),
@@ -91,7 +122,7 @@ export default function RegisterPage() {
           );
 
           if (!dbRes.success) {
-            setOtpError(dbRes.error || "Failed to create user in database.");
+            setOtpError(dbRes.error || "Failed to save user in Supabase database.");
             setIsSubmitting(false);
             return;
           }
@@ -118,7 +149,7 @@ export default function RegisterPage() {
           setOtpModalOpen(false);
           router.replace("/");
         } else {
-          setOtpError(res.error || "Registration failed.");
+          setOtpError(res.error || "Registration failed in database.");
           setIsSubmitting(false);
         }
       }
@@ -152,12 +183,12 @@ export default function RegisterPage() {
       return;
     }
 
-    if (clerk.loaded && clerk.client?.signUp) {
+    if (clerk.loaded && clerk.client) {
       setIsSubmitting(true);
       try {
         // Clerk is used strictly as the email OTP delivery & verification provider.
-        // We supply a clean, unbreached secure internal key for Clerk's temporary verification session
-        // so Clerk's password policies do not interfere. The user's actual password is saved to Supabase database.
+        // We supply an internal unbreached secret for Clerk's temporary verification session,
+        // and store the user's actual chosen credentials directly in the Supabase database.
         const internalClerkSecret = `ClerkVerify_${Math.random().toString(36).slice(2)}_${Date.now()}!Aa9`;
 
         try {
@@ -166,19 +197,40 @@ export default function RegisterPage() {
             password: internalClerkSecret,
             firstName: name.trim()
           });
-        } catch (createErr: any) {
-          console.warn("Clerk create notice (checking if session can be verified):", createErr);
-        }
 
-        await clerk.client.signUp.prepareEmailAddressVerification({
-          strategy: "email_code"
-        });
+          await clerk.client.signUp.prepareEmailAddressVerification({
+            strategy: "email_code"
+          });
+          setIsSignInFlow(false);
+        } catch (createErr: any) {
+          const errCode = createErr?.errors?.[0]?.code;
+          // If identifier already exists in Clerk, fallback to sending email verification code via signIn factor
+          if (errCode === "form_identifier_exists" || createErr?.message?.includes("already exists")) {
+            const signInAttempt = await clerk.client.signIn.create({
+              identifier: email.trim()
+            });
+            const emailFactor = signInAttempt.supportedFirstFactors?.find(
+              (f: any) => f.strategy === "email_code"
+            ) as any;
+            if (emailFactor) {
+              await clerk.client.signIn.prepareFirstFactor({
+                strategy: "email_code",
+                emailAddressId: emailFactor.emailAddressId
+              });
+              setIsSignInFlow(true);
+            } else {
+              throw createErr;
+            }
+          } else {
+            throw createErr;
+          }
+        }
 
         setOtpError(null);
         setEnteredOtp("");
         setOtpModalOpen(true);
       } catch (err: any) {
-        console.error("Clerk signup init error:", err);
+        console.error("Clerk verification dispatch error:", err);
         const clerkErrMsg =
           err?.errors?.[0]?.longMessage ||
           err?.errors?.[0]?.message ||

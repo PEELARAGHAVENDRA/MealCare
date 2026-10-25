@@ -81,7 +81,7 @@ export default function DashboardPage() {
 
   async function loadCustomRoles() {
     try {
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "https://mealcare-production.up.railway.app";
       const res = await fetch(`${apiBaseUrl}/auth/roles`);
       if (res.ok) {
         const data = await res.json();
@@ -103,7 +103,7 @@ export default function DashboardPage() {
 
     setAddingRole(true);
     try {
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "https://mealcare-production.up.railway.app";
       const res = await fetch(`${apiBaseUrl}/auth/roles`, {
         method: "POST",
         headers: {
@@ -417,7 +417,7 @@ export default function DashboardPage() {
     }, 400);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/ai/scan-food`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "https://mealcare-production.up.railway.app"}/ai/scan-food`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

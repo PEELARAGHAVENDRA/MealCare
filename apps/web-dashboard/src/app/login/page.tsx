@@ -57,7 +57,7 @@ export default function LoginPage() {
   React.useEffect(() => {
     async function fetchPublicStats() {
       try {
-        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "https://mealcare-production.up.railway.app";
         const res = await fetch(`${apiBaseUrl}/auth/public-stats`);
         if (res.ok) {
           const data = await res.json();

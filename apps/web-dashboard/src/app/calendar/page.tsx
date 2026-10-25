@@ -63,7 +63,7 @@ export default function CalendarPage() {
   const [submittingAction, setSubmittingAction] = useState(false);
   const [zoomImage, setZoomImage] = useState<string | null>(null);
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://mealcare-production.up.railway.app";
 
   const userRole = user?.role || "FOOD_SERVER";
   const isApprover = true; // All inside features should be visible and usable by everyone

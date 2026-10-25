@@ -39,7 +39,7 @@ export const nutritionTrend = [
   { date: "Fri", score: 86 }
 ];
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://mealcare-production.up.railway.app";
 
 function getHeaders() {
   if (typeof window === "undefined") return {};
