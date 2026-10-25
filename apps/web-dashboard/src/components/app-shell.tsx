@@ -21,6 +21,7 @@ import {
   Award,
   Mail,
   Building2
+} from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { useDemo } from "@/lib/DemoContext";
 import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
