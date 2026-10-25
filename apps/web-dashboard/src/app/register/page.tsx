@@ -46,7 +46,10 @@ export default function RegisterPage() {
     fetchRoles();
   }, []);
 
-  const { isLoaded: isClerkLoaded, signUp, setActive } = useSignUp();
+  const clerkSignUp = (useSignUp as any)();
+  const isClerkLoaded = clerkSignUp?.isLoaded ?? !!clerkSignUp;
+  const signUp = clerkSignUp?.signUp ?? clerkSignUp;
+  const setActive = clerkSignUp?.setActive;
 
   // OTP Verification States
   const [otpModalOpen, setOtpModalOpen] = useState(false);
