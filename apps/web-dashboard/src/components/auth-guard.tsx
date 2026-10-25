@@ -25,39 +25,45 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const { isLoaded: isClerkLoaded, isSignedIn: isClerkSignedIn } = useUser();
   const router = useRouter();
   const pathname = usePathname();
+  const [mounted, setMounted] = React.useState(false);
 
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const isPublicPath = PUBLIC_PATHS.some((path) => pathname.startsWith(path));
   const isAuthed = !!token || !!isClerkSignedIn;
   const isAuthLoading = loading || !isClerkLoaded;
 
   useEffect(() => {
-    if (!isAuthLoading) {
-      const isPublicPath = PUBLIC_PATHS.some((path) => pathname.startsWith(path));
-      
-      if (!isAuthed) {
-        // Unauthenticated redirect to login
-        if (!isPublicPath) {
-          router.replace("/login");
-        }
+    if (!mounted || isAuthLoading) return;
+
+    if (!isAuthed) {
+      if (!isPublicPath) {
+        router.replace("/login");
+      }
+    } else {
+      if (pathname === "/login" || pathname === "/register" || pathname === "/forgot-password" || pathname === "/reset-password") {
+        router.replace("/");
       } else {
-        // Authenticated redirect away from login/register
-        if (pathname === "/login" || pathname === "/register" || pathname === "/forgot-password" || pathname === "/reset-password") {
-          router.replace("/");
-        } else {
-          // Check route permissions (RBAC) if user role exists
-          const matchedRoute = Object.keys(ROUTE_PERMISSIONS).find((route) => pathname.startsWith(route));
-          if (matchedRoute && user) {
-            const allowedRoles = ROUTE_PERMISSIONS[matchedRoute];
-            if (!allowedRoles.includes(user.role)) {
-              router.replace("/unauthorized");
-            }
+        const matchedRoute = Object.keys(ROUTE_PERMISSIONS).find((route) => pathname.startsWith(route));
+        if (matchedRoute && user) {
+          const allowedRoles = ROUTE_PERMISSIONS[matchedRoute];
+          if (!allowedRoles.includes(user.role)) {
+            router.replace("/unauthorized");
           }
         }
       }
     }
-  }, [isAuthed, isAuthLoading, user, pathname, router]);
+  }, [mounted, isAuthed, isAuthLoading, user, pathname, router, isPublicPath]);
 
-  // Show a premium, themed loader while loading the authentication state
-  if (isAuthLoading) {
+  // For public paths (login, register), always render children directly so SSR and client match 100%
+  if (isPublicPath) {
+    return <>{children}</>;
+  }
+
+  // Show themed loader while checking auth state on protected pages
+  if (!mounted || (isAuthLoading && !isAuthed)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-4">
@@ -70,8 +76,6 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const isPublicPath = PUBLIC_PATHS.some((path) => pathname.startsWith(path));
-  
   // Prevent rendering protected content if unauthenticated
   if (!isAuthed && !isPublicPath) {
     return (

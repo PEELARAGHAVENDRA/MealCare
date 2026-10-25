@@ -39,7 +39,8 @@ const navItems = [
   { href: "/reports", label: "Reports", icon: FileText, roles: ["SUPER_ADMIN", "DISTRICT_ADMIN", "NUTRITION_OFFICER", "SCHOOL_HEAD"] }
 ];
 
-function formatRole(role: string) {
+function formatRole(role?: string) {
+  if (!role) return "Member";
   if (role === "SCHOOL_HEAD") return "School/College Head";
   return role.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
 }
@@ -113,12 +114,12 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
         <div className="border-t border-slate-100 pt-4 px-4 space-y-3">
           <div className="flex items-center gap-3 px-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-600 font-bold border border-slate-200">
-              {user.name[0].toUpperCase()}
+              {(user.name?.[0] || "U").toUpperCase()}
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="text-sm font-bold text-slate-800 truncate leading-tight">{user.name}</span>
+              <span className="text-sm font-bold text-slate-800 truncate leading-tight">{user.name || "User"}</span>
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5 truncate">
-                {user.role.replace(/_/g, " ")}
+                {(user.role || "MEMBER").replace(/_/g, " ")}
               </span>
             </div>
           </div>
