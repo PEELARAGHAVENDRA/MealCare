@@ -65,8 +65,13 @@ export async function fetchTodayStats(schoolId: string): Promise<DashboardData> 
       totalUsersCount: data.totalUsersCount
     };
   } catch (error) {
-    console.warn("API today stats error, using mock fallback:", error);
-    return demoDashboard;
+    console.warn("API today stats error:", error);
+    return {
+      prepared: 0,
+      served: 0,
+      remaining: 0,
+      school: null
+    };
   }
 }
 
@@ -102,12 +107,12 @@ export async function fetchSchoolAnalytics(schoolId: string): Promise<AnalyticsR
       nutritionTrend: data.nutritionTrend || []
     };
   } catch (error) {
-    console.warn("API school analytics error, returning default format:", error);
+    console.warn("API school analytics error:", error);
     return {
-      totalPrepared: 230,
-      totalServed: 218,
-      averageWaste: 5.22,
-      mealParticipation: attendanceTrend,
+      totalPrepared: 0,
+      totalServed: 0,
+      averageWaste: 0,
+      mealParticipation: [],
       meals: [],
       wastage: [],
       recommendations: [],
@@ -124,15 +129,36 @@ export async function fetchDistrictAnalytics() {
     if (!res.ok) throw new Error("Failed to fetch district analytics");
     return await res.json();
   } catch (error) {
-    console.warn("API district analytics error, returning mock data:", error);
+    console.warn("API district analytics error:", error);
     return {
-      schools: [
-        { id: "1", name: "Government Primary School Nandipur", district: "Demo District", prepared: 230, served: 218, averageWaste: 5.22 },
-        { id: "2", name: "Zilla Parishad School East", district: "Demo District", prepared: 310, served: 288, averageWaste: 7.1 },
-        { id: "3", name: "Model Primary School West", district: "Demo District", prepared: 180, served: 174, averageWaste: 3.4 }
-      ]
+      schools: []
     };
   }
+}
+
+export async function fetchSchools() {
+  try {
+    const res = await fetch(`${API_BASE_URL}/schools`, {
+      headers: getHeaders(),
+    });
+    if (!res.ok) throw new Error("Failed to fetch schools registry");
+    return await res.json();
+  } catch (error) {
+    console.warn("API fetch schools error:", error);
+    return [];
+  }
+}
+
+export async function deleteSchool(schoolId: string) {
+  const res = await fetch(`${API_BASE_URL}/schools/${schoolId}`, {
+    method: "DELETE",
+    headers: getHeaders(),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || "Failed to delete institution");
+  }
+  return await res.json();
 }
 
 export async function fetchMealsList(schoolId?: string) {
@@ -144,7 +170,7 @@ export async function fetchMealsList(schoolId?: string) {
     if (!res.ok) throw new Error("Failed to fetch meals");
     return await res.json();
   } catch (error) {
-    console.warn("API fetch meals error, returning mock data:", error);
+    console.warn("API fetch meals error:", error);
     return [];
   }
 }

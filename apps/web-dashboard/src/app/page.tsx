@@ -27,7 +27,7 @@ import { TrendLine, WasteBar } from "@/components/charts";
 import { StatCard } from "@/components/stat-card";
 import { useAuth } from "@/lib/AuthContext";
 import { useDemo } from "@/lib/DemoContext";
-import { fetchTodayStats, fetchSchoolAnalytics, fetchDistrictAnalytics, DashboardData, AnalyticsResponse, wasteTrend, nutritionTrend } from "@/lib/api";
+import { fetchTodayStats, fetchSchoolAnalytics, fetchDistrictAnalytics, fetchSchools, DashboardData, AnalyticsResponse, wasteTrend, nutritionTrend } from "@/lib/api";
 
 interface ScheduleItem {
   day: string;
@@ -193,6 +193,11 @@ export default function DashboardPage() {
         const data = await fetchDistrictAnalytics();
         if (data?.schools?.length > 0) {
           setSchoolId(data.schools[0].id);
+        } else {
+          const allSchools = await fetchSchools();
+          if (Array.isArray(allSchools) && allSchools.length > 0) {
+            setSchoolId(allSchools[0].id);
+          }
         }
       }
     }

@@ -101,7 +101,7 @@ mealsRouter.get("/schools/:schoolId/dashboard/today", requireSchoolAccess((req) 
     const end = new Date(start);
     end.setDate(end.getDate() + 1);
 
-    const [school, meals, attendance] = await Promise.all([
+    let [school, meals, attendance] = await Promise.all([
       prisma.school.findUnique({ where: { id: req.params.schoolId } }),
       prisma.meal.findMany({
         where: { schoolId: req.params.schoolId, date: { gte: start, lt: end } },
@@ -109,6 +109,25 @@ mealsRouter.get("/schools/:schoolId/dashboard/today", requireSchoolAccess((req) 
       }),
       prisma.attendance.findFirst({ where: { schoolId: req.params.schoolId, date: { gte: start, lt: end } } })
     ]);
+
+    // If no meals logged today, fetch latest meal entry from database so genuine stats are shown
+    if (meals.length === 0) {
+      const latestMeal = await prisma.meal.findFirst({
+        where: { schoolId: req.params.schoolId },
+        orderBy: { date: "desc" },
+        include: { foodWastage: true }
+      });
+      if (latestMeal) {
+        meals = [latestMeal];
+      }
+    }
+
+    if (!attendance) {
+      attendance = await prisma.attendance.findFirst({
+        where: { schoolId: req.params.schoolId },
+        orderBy: { date: "desc" }
+      });
+    }
 
     const prepared = meals.reduce((sum, meal) => sum + meal.preparedCount, 0);
     const served = meals.reduce((sum, meal) => sum + meal.servedCount, 0);

@@ -49,10 +49,18 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [stats, setStats] = useState({
+    attendanceRate: 0,
+    nutritionScore: 0,
+    averageWastage: 0
+  });
+
+  const DEMO_PUBLIC_STATS = {
     attendanceRate: 94.7,
     nutritionScore: 88,
     averageWastage: 5.2
-  });
+  };
+
+  const activeStats = isDemoMode ? DEMO_PUBLIC_STATS : stats;
 
   React.useEffect(() => {
     async function fetchPublicStats() {
@@ -64,7 +72,7 @@ export default function LoginPage() {
           setStats(data);
         }
       } catch (err) {
-        console.warn("Failed to fetch public stats from API, using static defaults:", err);
+        console.warn("Failed to fetch public stats from API:", err);
       }
     }
     fetchPublicStats();
@@ -136,13 +144,26 @@ export default function LoginPage() {
           </p>
 
           {/* Analytics Statistics Cards */}
-          <div className="grid grid-cols-2 gap-4 pt-4">
+          <div className="flex items-center justify-between pt-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-300">
+              {isDemoMode ? "Demonstration Metrics" : "Live Supabase Database Metrics"}
+            </span>
+            <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${
+              isDemoMode 
+                ? "bg-amber-500/20 text-amber-300 border-amber-500/30" 
+                : "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
+            }`}>
+              {isDemoMode ? "Demo Mode" : "Original Live DB"}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
             <div className="rounded-xl border border-white/10 bg-white/5 p-4 backdrop-blur-md">
               <div className="flex items-center gap-2 text-gov-saffron">
                 <TrendingUp size={16} />
                 <span className="text-xs font-semibold uppercase tracking-wider">Attendance Rate</span>
               </div>
-              <p className="mt-2 text-2xl font-bold">{stats.attendanceRate}%</p>
+              <p className="mt-2 text-2xl font-bold">{activeStats.attendanceRate}%</p>
               <p className="text-[10px] text-slate-400 mt-1">Average district participation</p>
             </div>
 
@@ -151,7 +172,7 @@ export default function LoginPage() {
                 <Sparkles size={16} />
                 <span className="text-xs font-semibold uppercase tracking-wider">Nutrition Target</span>
               </div>
-              <p className="mt-2 text-2xl font-bold">Met ({stats.nutritionScore}/100)</p>
+              <p className="mt-2 text-2xl font-bold">Met ({activeStats.nutritionScore}/100)</p>
               <p className="text-[10px] text-slate-400 mt-1">High protein & iron score</p>
             </div>
 
@@ -161,10 +182,10 @@ export default function LoginPage() {
                   <AlertTriangle size={16} />
                   <span className="text-xs font-semibold uppercase tracking-wider">Wastage Reduction</span>
                 </div>
-                <p className="mt-1 text-lg font-bold">{stats.averageWastage}% Daily Average</p>
+                <p className="mt-1 text-lg font-bold">{activeStats.averageWastage}% Daily Average</p>
               </div>
               <span className="text-xs font-semibold bg-emerald-500/20 text-emerald-300 px-2 py-1 rounded-full border border-emerald-500/30">
-                -3.4% this week
+                Live Data
               </span>
             </div>
           </div>

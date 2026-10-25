@@ -2,10 +2,10 @@
 
 import React, { useEffect, useState } from "react";
 import { AppShell } from "@/components/app-shell";
-import { fetchDistrictAnalytics, createSchool } from "@/lib/api";
+import { fetchSchools, createSchool, deleteSchool } from "@/lib/api";
 import { useAuth } from "@/lib/AuthContext";
 import { useDemo } from "@/lib/DemoContext";
-import { Loader2, Plus, PlusCircle, Building2, MapPin, Users, Hash, FileText, CheckCircle2, Copy, Check } from "lucide-react";
+import { Loader2, Plus, PlusCircle, Building2, MapPin, Users, Hash, FileText, CheckCircle2, Copy, Check, Trash2, AlertCircle } from "lucide-react";
 
 const MOCK_SCHOOLS_LIST = [
   { id: "cmpppkkv70000b511lbz008lr", name: "Government Primary School Delhi", code: "GOV-SCH-001", district: "Central District", type: "SCHOOL", prepared: 1100, served: 1040, averageWaste: 5.4 },
@@ -34,7 +34,14 @@ export default function SchoolsPage() {
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
+  // Deletion states
+  const [deletingSchoolId, setDeletingSchoolId] = useState<string | null>(null);
+  const [deletingSchoolName, setDeletingSchoolName] = useState<string>("");
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [actionMessage, setActionMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
   const isSuperAdmin = user?.role === "SUPER_ADMIN";
+  const isAdmin = user?.role === "SUPER_ADMIN" || user?.role === "DISTRICT_ADMIN";
 
   const getNamePlaceholder = () => {
     if (type === "SCHOOL") return "e.g. Government School Delhi";
@@ -61,8 +68,8 @@ export default function SchoolsPage() {
       if (isDemoMode) {
         setSchools(MOCK_SCHOOLS_LIST);
       } else {
-        const data = await fetchDistrictAnalytics();
-        setSchools(data.schools || []);
+        const data = await fetchSchools();
+        setSchools(Array.isArray(data) ? data : []);
       }
     } catch (err) {
       console.error("Error loading schools list", err);
@@ -70,6 +77,26 @@ export default function SchoolsPage() {
       setLoading(false);
     }
   }
+
+  const handleDeleteSchool = async (schoolId: string) => {
+    setIsDeleting(true);
+    setActionMessage(null);
+    try {
+      if (isDemoMode) {
+        setSchools(prev => prev.filter(s => s.id !== schoolId));
+        setActionMessage({ type: "success", text: `Institution removed from local view (Demo Mode).` });
+      } else {
+        const res = await deleteSchool(schoolId);
+        setActionMessage({ type: "success", text: res.message || "Institution deleted successfully from database." });
+        await loadSchools();
+      }
+    } catch (err: any) {
+      setActionMessage({ type: "error", text: err.message || "Failed to delete institution." });
+    } finally {
+      setIsDeleting(false);
+      setDeletingSchoolId(null);
+    }
+  };
 
   useEffect(() => {
     loadSchools();
@@ -352,13 +379,33 @@ export default function SchoolsPage() {
           </section>
         )}
 
+        {actionMessage && (
+          <div className={`p-4 rounded-xl border flex items-center justify-between gap-3 text-xs font-semibold ${
+            actionMessage.type === "success" 
+              ? "bg-green-50 border-green-200 text-green-800" 
+              : "bg-red-50 border-red-200 text-red-800"
+          }`}>
+            <div className="flex items-center gap-2">
+              {actionMessage.type === "success" ? (
+                <CheckCircle2 size={16} className="text-green-600 shrink-0" />
+              ) : (
+                <AlertCircle size={16} className="text-red-600 shrink-0" />
+              )}
+              <span>{actionMessage.text}</span>
+            </div>
+            <button onClick={() => setActionMessage(null)} className="text-slate-400 hover:text-slate-600">
+              ✕
+            </button>
+          </div>
+        )}
+
         <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
             <div>
               <h2 className="text-base font-extrabold text-slate-900">Multi-Institution Monitoring</h2>
               <p className="text-xs font-semibold text-slate-500 mt-0.5">Database of active institutions in the district</p>
             </div>
-            {isSuperAdmin && !showAddForm && (
+            {isAdmin && !showAddForm && (
               <button
                 onClick={() => setShowAddForm(true)}
                 className="flex items-center justify-center gap-2 rounded-xl bg-gov-green px-4 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-800 active:scale-[0.98]"
@@ -373,7 +420,7 @@ export default function SchoolsPage() {
             <div className="flex flex-col items-center justify-center py-10 text-slate-500">
               <Building2 size={40} className="text-slate-300 mb-2" />
               <p className="text-sm font-semibold">No registered institutions found.</p>
-              {isSuperAdmin && (
+              {isAdmin && (
                 <button
                   onClick={() => setShowAddForm(true)}
                   className="mt-2 text-xs font-bold text-gov-green hover:underline"
@@ -393,12 +440,13 @@ export default function SchoolsPage() {
                     <th className="px-4">District</th>
                     <th className="px-4">Meals Prepared</th>
                     <th className="px-4">Meals Served</th>
-                    <th className="px-4 rounded-r-xl">Average Waste</th>
+                    <th className={`px-4 ${!isAdmin ? "rounded-r-xl" : ""}`}>Average Waste</th>
+                    {isAdmin && <th className="px-4 text-right rounded-r-xl">Actions</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {schools.map((school) => {
-                    const wastePercent = school.averageWaste ? `${school.averageWaste.toFixed(1)}%` : "0.0%";
+                    const wastePercent = typeof school.averageWaste === "number" ? `${school.averageWaste.toFixed(1)}%` : "0.0%";
                     const activeCode = school.code || school.id;
                     return (
                       <tr key={school.id} className="hover:bg-slate-50/40 transition">
@@ -441,7 +489,7 @@ export default function SchoolsPage() {
                             </span>
                           )}
                         </td>
-                        <td className="px-4 font-semibold text-slate-605">{school.district}</td>
+                        <td className="px-4 font-semibold text-slate-600">{school.district}</td>
                         <td className="px-4 text-slate-700 font-extrabold">{school.prepared || 0}</td>
                         <td className="px-4 text-slate-700 font-extrabold">{school.served || 0}</td>
                         <td className="px-4 text-slate-700">
@@ -451,6 +499,21 @@ export default function SchoolsPage() {
                             {wastePercent}
                           </span>
                         </td>
+                        {isAdmin && (
+                          <td className="px-4 text-right">
+                            <button
+                              onClick={() => {
+                                setDeletingSchoolId(school.id);
+                                setDeletingSchoolName(school.name);
+                              }}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 transition border border-red-200/50"
+                              title="Delete Institution"
+                            >
+                              <Trash2 size={13} />
+                              <span>Delete</span>
+                            </button>
+                          </td>
+                        )}
                       </tr>
                     );
                   })}
@@ -459,6 +522,52 @@ export default function SchoolsPage() {
             </div>
           )}
         </section>
+
+        {/* Delete Confirmation Modal */}
+        {deletingSchoolId && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+            <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
+              <div className="text-center">
+                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-red-600">
+                  <Trash2 size={24} />
+                </div>
+                <h3 className="text-lg font-extrabold text-slate-900">Delete Institution?</h3>
+                <p className="mt-2 text-xs text-slate-600 leading-relaxed">
+                  Are you sure you want to permanently delete <span className="font-bold text-slate-900">"{deletingSchoolName}"</span> from the Supabase database?
+                </p>
+                <p className="mt-1 text-[11px] text-red-600 font-semibold">
+                  This will safely unlink associated meal logs, student attendance, and user profiles.
+                </p>
+              </div>
+
+              <div className="mt-6 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDeletingSchoolId(null)}
+                  disabled={isDeleting}
+                  className="flex-1 rounded-xl border border-slate-200 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteSchool(deletingSchoolId)}
+                  disabled={isDeleting}
+                  className="flex-1 rounded-xl bg-red-600 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-red-700 transition flex items-center justify-center gap-2"
+                >
+                  {isDeleting ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      <span>Deleting...</span>
+                    </>
+                  ) : (
+                    "Yes, Delete"
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </AppShell>
   );

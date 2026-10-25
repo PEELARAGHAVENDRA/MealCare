@@ -279,23 +279,24 @@ authRouter.get("/public-stats", async (req, res, next) => {
     let attendances: any[] = [];
     let weeklyPlans: any[] = [];
     let foodWastage: any[] = [];
+    let meals: any[] = [];
 
     try {
-      [attendances, weeklyPlans, foodWastage] = await Promise.all([
-        prisma.attendance.findMany(),
-        prisma.weeklyPlan.findMany(),
-        prisma.foodWastage.findMany()
+      [attendances, weeklyPlans, foodWastage, meals] = await Promise.all([
+        prisma.attendance.findMany({ orderBy: { date: "desc" }, take: 50 }),
+        prisma.weeklyPlan.findMany({ orderBy: { weekStartDate: "desc" }, take: 50 }),
+        prisma.foodWastage.findMany({ orderBy: { createdAt: "desc" }, take: 50 }),
+        prisma.meal.findMany({ orderBy: { date: "desc" }, take: 50, include: { foodWastage: true } })
       ]);
     } catch (dbErr) {
-      // Return default statistics when database is offline
       return res.json({
-        attendanceRate: 94.7,
-        nutritionScore: 88.0,
-        averageWastage: 5.2
+        attendanceRate: 0,
+        nutritionScore: 0,
+        averageWastage: 0
       });
     }
 
-    let attendanceRate = 94.7;
+    let attendanceRate = 0;
     if (attendances.length > 0) {
       const validRates = attendances
         .map(a => {
@@ -308,7 +309,7 @@ authRouter.get("/public-stats", async (req, res, next) => {
       }
     }
 
-    let nutritionScore = 88.0;
+    let nutritionScore = 0;
     if (weeklyPlans.length > 0) {
       const scores = weeklyPlans.map(p => p.weeklyNutritionScore).filter(s => s > 0);
       if (scores.length > 0) {
@@ -316,9 +317,16 @@ authRouter.get("/public-stats", async (req, res, next) => {
       }
     }
 
-    let averageWastage = 5.2;
+    let averageWastage = 0;
     if (foodWastage.length > 0) {
       const pcts = foodWastage.map(w => w.wastePercentage).filter(p => p > 0);
+      if (pcts.length > 0) {
+        averageWastage = pcts.reduce((sum, p) => sum + p, 0) / pcts.length;
+      }
+    } else if (meals.length > 0) {
+      const pcts = meals
+        .map(m => m.preparedCount > 0 ? ((m.preparedCount - m.servedCount) / m.preparedCount) * 100 : 0)
+        .filter(p => p > 0);
       if (pcts.length > 0) {
         averageWastage = pcts.reduce((sum, p) => sum + p, 0) / pcts.length;
       }
@@ -331,9 +339,9 @@ authRouter.get("/public-stats", async (req, res, next) => {
     });
   } catch (error) {
     return res.json({
-      attendanceRate: 94.7,
-      nutritionScore: 88.0,
-      averageWastage: 5.2
+      attendanceRate: 0,
+      nutritionScore: 0,
+      averageWastage: 0
     });
   }
 });

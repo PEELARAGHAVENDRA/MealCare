@@ -6,29 +6,51 @@ import { schoolCreateSchema } from "../schemas";
 
 export const schoolsRouter = Router();
 
-const DEFAULT_SCHOOLS = [
-  { id: "cmpppkkv70000b511lbz008lr", name: "Government Primary School Nandipur", code: "GOV-SCH-001", district: "Nandipur", block: "Block A", address: "Main Road Nandipur", studentCount: 240, type: "SCHOOL" },
-  { id: "sch-2", name: "Modern Girls Public School", code: "GIRLS-SCH-002", district: "Nandipur", block: "Block B", address: "Civil Lines", studentCount: 310, type: "SCHOOL" },
-  { id: "sch-3", name: "National Secondary School Model", code: "GOV-SCH-003", district: "Nandipur", block: "Block C", address: "Sector 4", studentCount: 450, type: "SCHOOL" }
-];
-
-// Retrieve all schools
+// Retrieve all institutions with genuine metrics from database
 schoolsRouter.get("/schools", requireAuth, async (req, res, next) => {
   try {
     const schools = await prisma.school.findMany({
+      include: {
+        meals: { take: 10, orderBy: { date: "desc" }, include: { foodWastage: true } },
+        attendance: { take: 10, orderBy: { date: "desc" } }
+      },
       orderBy: { name: "asc" }
     });
-    res.json(schools.length > 0 ? schools : DEFAULT_SCHOOLS);
+
+    const formatted = schools.map((school) => {
+      const prepared = school.meals.reduce((sum, meal) => sum + meal.preparedCount, 0);
+      const served = school.meals.reduce((sum, meal) => sum + meal.servedCount, 0);
+      const wasteEntries = school.meals.flatMap((meal) => meal.foodWastage ? [meal.foodWastage] : []);
+      const averageWaste = wasteEntries.length > 0 
+        ? Number((wasteEntries.reduce((acc, curr) => acc + curr.wastePercentage, 0) / wasteEntries.length).toFixed(1))
+        : 0;
+
+      return {
+        id: school.id,
+        name: school.name,
+        code: school.code,
+        district: school.district,
+        block: school.block,
+        address: school.address,
+        studentCount: school.studentCount,
+        type: school.type,
+        prepared,
+        served,
+        averageWaste
+      };
+    });
+
+    res.json(formatted);
   } catch (error) {
-    res.json(DEFAULT_SCHOOLS);
+    next(error);
   }
 });
 
-// Create new school (restricted to SUPER_ADMIN)
+// Create new institution (restricted to SUPER_ADMIN & DISTRICT_ADMIN)
 schoolsRouter.post(
   "/schools",
   requireAuth,
-  requireRole("SUPER_ADMIN"),
+  requireRole("SUPER_ADMIN", "DISTRICT_ADMIN"),
   validateBody(schoolCreateSchema),
   async (req, res, next) => {
     try {
@@ -36,7 +58,7 @@ schoolsRouter.post(
 
       const existing = await prisma.school.findUnique({ where: { code } });
       if (existing) {
-        return res.status(400).json({ error: "School code/ID is already in use" });
+        return res.status(400).json({ error: "Institution code/ID is already in use" });
       }
 
       const school = await prisma.school.create({
@@ -52,6 +74,82 @@ schoolsRouter.post(
       });
 
       res.status(201).json(school);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// Delete institution (restricted to SUPER_ADMIN & DISTRICT_ADMIN)
+schoolsRouter.delete(
+  "/schools/:id",
+  requireAuth,
+  requireRole("SUPER_ADMIN", "DISTRICT_ADMIN"),
+  async (req, res, next) => {
+    try {
+      const { id } = req.params;
+
+      const school = await prisma.school.findUnique({ where: { id } });
+      if (!school) {
+        return res.status(404).json({ error: "Institution not found" });
+      }
+
+      // Safely delete or detach all relations in a transaction to satisfy foreign key constraints
+      await prisma.$transaction(async (tx) => {
+        // 1. Detach users linked to this school
+        await tx.user.updateMany({
+          where: { schoolId: id },
+          data: { schoolId: null }
+        });
+
+        // 2. Delete meal related children
+        const meals = await tx.meal.findMany({
+          where: { schoolId: id },
+          select: { id: true }
+        });
+        const mealIds = meals.map((m) => m.id);
+
+        if (mealIds.length > 0) {
+          await tx.foodWastage.deleteMany({ where: { mealId: { in: mealIds } } });
+          await tx.mealDistribution.deleteMany({ where: { mealId: { in: mealIds } } });
+          await tx.mealIngredient.deleteMany({ where: { mealId: { in: mealIds } } });
+          await tx.meal.deleteMany({ where: { id: { in: mealIds } } });
+        }
+
+        // 3. Delete attendance
+        await tx.attendance.deleteMany({ where: { schoolId: id } });
+
+        // 4. Delete inventory
+        await tx.inventory.deleteMany({ where: { schoolId: id } });
+
+        // 5. Delete weekly plans and daily plans
+        const weeklyPlans = await tx.weeklyPlan.findMany({
+          where: { schoolId: id },
+          select: { id: true }
+        });
+        const planIds = weeklyPlans.map((p) => p.id);
+        if (planIds.length > 0) {
+          await tx.weeklyPlanDay.deleteMany({ where: { weeklyPlanId: { in: planIds } } });
+          await tx.weeklyPlan.deleteMany({ where: { id: { in: planIds } } });
+        }
+
+        // 6. Delete reports
+        await tx.report.deleteMany({ where: { schoolId: id } });
+
+        // 7. Delete AI predictions and recommendations
+        await tx.aiPrediction.deleteMany({ where: { schoolId: id } });
+        await tx.aiRecommendation.deleteMany({ where: { schoolId: id } });
+
+        // 8. Delete evidence, calendar, compliance reports
+        await tx.mealEvidence.deleteMany({ where: { schoolId: id } });
+        await tx.mealCalendar.deleteMany({ where: { schoolId: id } });
+        await tx.complianceReport.deleteMany({ where: { schoolId: id } });
+
+        // 9. Delete the school itself
+        await tx.school.delete({ where: { id } });
+      });
+
+      return res.json({ success: true, message: `Institution "${school.name}" deleted successfully.` });
     } catch (error) {
       next(error);
     }
