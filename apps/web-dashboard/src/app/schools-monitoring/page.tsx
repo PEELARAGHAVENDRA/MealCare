@@ -129,20 +129,22 @@ export default function SchoolsMonitoringPage() {
         setSelectedSchool(mockData[0]);
       } else {
         try {
-          const res = await fetch("http://localhost:4000/schools", {
-            headers: {
-              "Authorization": `Bearer ${localStorage.getItem("token")}`
-            }
-          });
-          const data = await res.json();
-          if (data) {
-            // Map live database schools
-            const mapped: SchoolDetails[] = data.map((s: any) => ({
-              id: s.id,
-              name: s.name,
-              code: s.code,
-              district: s.district,
-              block: s.block,
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://mealcare-production.up.railway.app";
+          const token = localStorage.getItem("token");
+          const headers: Record<string, string> = {};
+          if (token && !token.startsWith("demo-")) {
+            headers["Authorization"] = `Bearer ${token}`;
+          }
+          const res = await fetch(`${apiUrl}/schools`, { headers });
+          if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data) && data.length > 0) {
+              const mapped: SchoolDetails[] = data.map((s: any) => ({
+                id: s.id,
+                name: s.name,
+                code: s.code,
+                district: s.district,
+                block: s.block,
               address: s.address,
               studentCount: s.studentCount,
               type: s.type || "Primary",

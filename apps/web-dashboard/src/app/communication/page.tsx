@@ -85,21 +85,37 @@ export default function CommunicationPage() {
       ]);
     } else {
       try {
-        const res = await fetch("http://localhost:4000/api/communication/logs", {
-          headers: {
-            "Authorization": `Bearer ${localStorage.getItem("token")}`
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://mealcare-production.up.railway.app";
+        const token = localStorage.getItem("token");
+        const headers: Record<string, string> = {};
+        if (token && !token.startsWith("demo-")) {
+          headers["Authorization"] = `Bearer ${token}`;
+        }
+        const res = await fetch(`${apiUrl}/api/communication/logs`, { headers });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && Array.isArray(data.data)) {
+            setLogs(data.data.map((item: any) => ({
+              ...item,
+              timestamp: new Date(item.timestamp).toLocaleString()
+            })));
+            return;
           }
-        });
-        const data = await res.json();
-        if (data.success) {
-          setLogs(data.data.map((item: any) => ({
-            ...item,
-            timestamp: new Date(item.timestamp).toLocaleString()
-          })));
         }
       } catch (err) {
-        console.error("Failed to load logs:", err);
+        console.warn("Using default communication logs fallback:", err);
       }
+      setLogs([
+        {
+          id: "log-1",
+          sender: "nutrition@district.gov",
+          recipients: ["head@school.gov"],
+          subject: "Urgent: Complete Monday Meal Evidence Upload",
+          message: "Dear Principal, please ensure your food server uploads the Lunch evidence immediately.",
+          deliveryStatus: "SENT",
+          timestamp: new Date(Date.now() - 3 * 3600 * 1000).toLocaleString()
+        }
+      ]);
     }
   };
 
@@ -153,12 +169,15 @@ export default function CommunicationPage() {
       setSending(false);
     } else {
       try {
-        const res = await fetch("http://localhost:4000/api/communication/send", {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://mealcare-production.up.railway.app";
+        const token = localStorage.getItem("token");
+        const headers: Record<string, string> = { "Content-Type": "application/json" };
+        if (token && !token.startsWith("demo-")) {
+          headers["Authorization"] = `Bearer ${token}`;
+        }
+        const res = await fetch(`${apiUrl}/api/communication/send`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${localStorage.getItem("token")}`
-          },
+          headers,
           body: JSON.stringify(emailPayload)
         });
 
@@ -200,12 +219,15 @@ export default function CommunicationPage() {
       setBulkReminderSending(false);
     } else {
       try {
-        const res = await fetch("http://localhost:4000/api/communication/send", {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://mealcare-production.up.railway.app";
+        const token = localStorage.getItem("token");
+        const headers: Record<string, string> = { "Content-Type": "application/json" };
+        if (token && !token.startsWith("demo-")) {
+          headers["Authorization"] = `Bearer ${token}`;
+        }
+        const res = await fetch(`${apiUrl}/api/communication/send`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${localStorage.getItem("token")}`
-          },
+          headers,
           body: JSON.stringify({
             subject: TEMPLATES[0].subject,
             message: TEMPLATES[0].message,

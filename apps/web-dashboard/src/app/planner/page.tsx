@@ -116,12 +116,14 @@ export default function PlannerPage() {
     } else {
       // Call backend API
       try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://mealcare-production.up.railway.app";
         const schoolId = user?.schoolId || "demo-school";
-        const res = await fetch(`http://localhost:4000/ai/weekly-plan?schoolId=${schoolId}`, {
-          headers: {
-            "Authorization": `Bearer ${localStorage.getItem("token")}`
-          }
-        });
+        const token = localStorage.getItem("token");
+        const headers: Record<string, string> = {};
+        if (token && !token.startsWith("demo-")) {
+          headers["Authorization"] = `Bearer ${token}`;
+        }
+        const res = await fetch(`${apiUrl}/ai/weekly-plan?schoolId=${schoolId}`, { headers });
         const data = await res.json();
         if (data.success && data.plan) {
           setStatus(data.plan.status);
@@ -266,13 +268,16 @@ export default function PlannerPage() {
     } else {
       // Post to Express API
       try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://mealcare-production.up.railway.app";
         const schoolId = user?.schoolId || "demo-school";
-        const res = await fetch("http://localhost:4000/ai/weekly-plan/save", {
+        const token = localStorage.getItem("token");
+        const headers: Record<string, string> = { "Content-Type": "application/json" };
+        if (token && !token.startsWith("demo-")) {
+          headers["Authorization"] = `Bearer ${token}`;
+        }
+        const res = await fetch(`${apiUrl}/ai/weekly-plan/save`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${localStorage.getItem("token")}`
-          },
+          headers,
           body: JSON.stringify({
             schoolId,
             weekStartDate: new Date(),

@@ -67,17 +67,26 @@ export default function EvidencePage() {
         }
       } else {
         try {
-          const res = await fetch(`http://localhost:4000/api/evidence/school/${schoolId}`, {
-            headers: {
-              "Authorization": `Bearer ${localStorage.getItem("token")}`
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://mealcare-production.up.railway.app";
+          const token = localStorage.getItem("token");
+          const headers: Record<string, string> = {};
+          if (token && !token.startsWith("demo-")) {
+            headers["Authorization"] = `Bearer ${token}`;
+          }
+          const res = await fetch(`${apiUrl}/api/evidence/school/${schoolId}`, { headers });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.success && Array.isArray(data.data)) {
+              setHistory(data.data);
+              return;
             }
-          });
-          const data = await res.json();
-          if (data.success) {
-            setHistory(data.data);
           }
         } catch (err) {
-          console.error("Failed to load live history:", err);
+          console.warn("Live evidence history fetch failed, using local/demo history:", err);
+        }
+        const stored = localStorage.getItem(`offline_evidence_${schoolId}`);
+        if (stored) {
+          setHistory(JSON.parse(stored));
         }
       }
     }
@@ -192,12 +201,15 @@ export default function EvidencePage() {
       setUploading(false);
     } else {
       try {
-        const res = await fetch("http://localhost:4000/api/evidence/upload", {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://mealcare-production.up.railway.app";
+        const token = localStorage.getItem("token");
+        const headers: Record<string, string> = { "Content-Type": "application/json" };
+        if (token && !token.startsWith("demo-")) {
+          headers["Authorization"] = `Bearer ${token}`;
+        }
+        const res = await fetch(`${apiUrl}/api/evidence/upload`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${localStorage.getItem("token")}`
-          },
+          headers,
           body: JSON.stringify(newUpload)
         });
 
@@ -208,7 +220,6 @@ export default function EvidencePage() {
           setCapturedImage(null);
           setCompressedImage(null);
           setImageSize(null);
-          // Refresh history
           setHistory(prev => [data.data, ...prev]);
         } else {
           setErrorMsg(data.error || "Failed to submit evidence.");

@@ -286,12 +286,14 @@ export default function DashboardPage() {
         }
       } else {
         try {
+          const apiBase = process.env.NEXT_PUBLIC_API_URL || "https://mealcare-production.up.railway.app";
           const activeSchoolId = schoolId || user?.schoolId || "demo-school";
-          const res = await fetch(`http://localhost:4000/ai/weekly-plan?schoolId=${activeSchoolId}`, {
-            headers: {
-              "Authorization": `Bearer ${localStorage.getItem("token")}`
-            }
-          });
+          const token = localStorage.getItem("token");
+          const headers: Record<string, string> = {};
+          if (token && !token.startsWith("demo-")) {
+            headers["Authorization"] = `Bearer ${token}`;
+          }
+          const res = await fetch(`${apiBase}/ai/weekly-plan?schoolId=${activeSchoolId}`, { headers });
           const data = await res.json();
           if (data.success && data.plan) {
             setWeeklyPlanStatus(data.plan.status);
