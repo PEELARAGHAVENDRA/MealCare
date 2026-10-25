@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { ClerkProvider } from "@clerk/nextjs";
 import { AuthProvider } from "@/lib/AuthContext";
 import { AuthGuard } from "@/components/auth-guard";
 import { DemoProvider } from "@/lib/DemoContext";
@@ -13,13 +14,15 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en">
       <body>
-        <DemoProvider>
-          <AuthProvider>
-            <AuthGuard>
-              {children}
-            </AuthGuard>
-          </AuthProvider>
-        </DemoProvider>
+        <ClerkProvider>
+          <DemoProvider>
+            <AuthProvider>
+              <AuthGuard>
+                {children}
+              </AuthGuard>
+            </AuthProvider>
+          </DemoProvider>
+        </ClerkProvider>
       </body>
     </html>
   );

@@ -165,10 +165,11 @@ export default function SchoolsMonitoringPage() {
               setSelectedSchool(mapped[0]);
             }
           }
-        } catch (err) {
-          console.error("Failed to load live directory:", err);
         }
+      } catch (err) {
+        console.error("Failed to load live directory:", err);
       }
+    }
       setLoading(false);
     }
     loadDirectory();

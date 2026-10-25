@@ -3,6 +3,7 @@
 import React, { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/AuthContext";
+import { useUser } from "@clerk/nextjs";
 
 const PUBLIC_PATHS = ["/login", "/register", "/forgot-password", "/reset-password", "/unauthorized"];
 
@@ -21,14 +22,18 @@ const ROUTE_PERMISSIONS: Record<string, string[]> = {
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const { token, user, loading } = useAuth();
+  const { isLoaded: isClerkLoaded, isSignedIn: isClerkSignedIn } = useUser();
   const router = useRouter();
   const pathname = usePathname();
 
+  const isAuthed = !!token || !!isClerkSignedIn;
+  const isAuthLoading = loading || !isClerkLoaded;
+
   useEffect(() => {
-    if (!loading) {
+    if (!isAuthLoading) {
       const isPublicPath = PUBLIC_PATHS.some((path) => pathname.startsWith(path));
       
-      if (!token) {
+      if (!isAuthed) {
         // Unauthenticated redirect to login
         if (!isPublicPath) {
           router.replace("/login");
@@ -38,7 +43,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         if (pathname === "/login" || pathname === "/register" || pathname === "/forgot-password" || pathname === "/reset-password") {
           router.replace("/");
         } else {
-          // Check route permissions (RBAC)
+          // Check route permissions (RBAC) if user role exists
           const matchedRoute = Object.keys(ROUTE_PERMISSIONS).find((route) => pathname.startsWith(route));
           if (matchedRoute && user) {
             const allowedRoles = ROUTE_PERMISSIONS[matchedRoute];
@@ -49,10 +54,10 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         }
       }
     }
-  }, [token, user, loading, pathname, router]);
+  }, [isAuthed, isAuthLoading, user, pathname, router]);
 
   // Show a premium, themed loader while loading the authentication state
-  if (loading) {
+  if (isAuthLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-4">
@@ -68,7 +73,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const isPublicPath = PUBLIC_PATHS.some((path) => pathname.startsWith(path));
   
   // Prevent rendering protected content if unauthenticated
-  if (!token && !isPublicPath) {
+  if (!isAuthed && !isPublicPath) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-2">
@@ -80,7 +85,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   }
 
   // Prevent rendering restricted paths if user does not match RBAC roles
-  if (token && !isPublicPath) {
+  if (isAuthed && !isPublicPath) {
     const matchedRoute = Object.keys(ROUTE_PERMISSIONS).find((route) => pathname.startsWith(route));
     if (matchedRoute && user) {
       const allowedRoles = ROUTE_PERMISSIONS[matchedRoute];

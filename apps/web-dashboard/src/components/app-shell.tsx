@@ -21,9 +21,9 @@ import {
   Award,
   Mail,
   Building2
-} from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { useDemo } from "@/lib/DemoContext";
+import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: BarChart3, roles: ["SUPER_ADMIN", "DISTRICT_ADMIN", "NUTRITION_OFFICER", "SCHOOL_HEAD", "KITCHEN_STAFF", "TEACHER", "STUDENT_PARENT", "FOOD_SERVER"] },
@@ -181,29 +181,45 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
             <h1 className="text-sm font-extrabold text-slate-800 tracking-tight mt-0.5">{title}</h1>
           </div>
 
-          {/* Demo Mode Toggle Switch */}
-          <div className="flex items-center gap-3 bg-slate-50 px-4 py-1.5 rounded-xl border border-slate-100 shadow-inner">
-            <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Demo Data</span>
-            <button
-              type="button"
-              onClick={() => setDemoMode(!isDemoMode)}
-              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none focus:ring-2 focus:ring-gov-green/20 ${
-                isDemoMode ? "bg-gov-green" : "bg-slate-300"
-              }`}
-              title="Toggle Demo Mode vs Live Database"
-            >
-              <span
-                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                  isDemoMode ? "translate-x-5" : "translate-x-0"
+          <div className="flex items-center gap-4">
+            {/* Demo Mode Toggle Switch */}
+            <div className="flex items-center gap-3 bg-slate-50 px-4 py-1.5 rounded-xl border border-slate-100 shadow-inner">
+              <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Demo Data</span>
+              <button
+                type="button"
+                onClick={() => setDemoMode(!isDemoMode)}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none focus:ring-2 focus:ring-gov-green/20 ${
+                  isDemoMode ? "bg-gov-green" : "bg-slate-300"
                 }`}
-              />
-            </button>
-            {isDemoMode && (
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-              </span>
-            )}
+                title="Toggle Demo Mode vs Live Database"
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                    isDemoMode ? "translate-x-5" : "translate-x-0"
+                  }`}
+                />
+              </button>
+              {isDemoMode && (
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+              )}
+            </div>
+
+            {/* Clerk User Controls */}
+            <div className="flex items-center gap-2">
+              <SignedIn>
+                <UserButton afterSignOutUrl="/login" />
+              </SignedIn>
+              <SignedOut>
+                <SignInButton mode="modal">
+                  <button className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-gov-green text-white hover:bg-emerald-700 transition shadow-sm">
+                    Clerk Sign In
+                  </button>
+                </SignInButton>
+              </SignedOut>
+            </div>
           </div>
         </header>
 

@@ -9,11 +9,12 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@clerk/nextjs": "^7.9.20",
+    "lucide-react": "^0.468.0",
     "next": "^15.4.5",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "recharts": "^2.12.7",
-    "lucide-react": "^0.468.0"
+    "recharts": "^2.12.7"
   },
   "devDependencies": {
     "@types/node": "^20.14.12",
