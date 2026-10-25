@@ -211,7 +211,7 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
             {/* Clerk User Controls */}
             <div className="flex items-center gap-2">
               <SignedIn>
-                <UserButton afterSignOutUrl="/login" />
+                <UserButton />
               </SignedIn>
               <SignedOut>
                 <SignInButton mode="modal">
