@@ -36,7 +36,6 @@ const ROLE_ICONS: Record<string, React.ComponentType<any>> = {
   "Student": UserIcon
 };
 import Link from "next/link";
-import { SignInButton } from "@clerk/nextjs";
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -216,30 +215,6 @@ export default function LoginPage() {
                     }`}
                   />
                 </button>
-              </div>
-            </div>
-
-            {/* Clerk Quick Sign-In */}
-            <div className="mb-5">
-              <SignInButton mode="modal">
-                <button
-                  type="button"
-                  className="w-full flex items-center justify-center gap-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 py-2.5 px-4 text-xs font-bold text-slate-800 shadow-sm transition hover:border-slate-300"
-                >
-                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="12" cy="12" r="10" stroke="#6C47FF" strokeWidth="2.5" />
-                    <circle cx="12" cy="12" r="5" fill="#6C47FF" />
-                  </svg>
-                  Sign in with Clerk
-                </button>
-              </SignInButton>
-              <div className="relative my-4">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-slate-200"></div>
-                </div>
-                <div className="relative flex justify-center text-[10px] uppercase font-bold text-slate-400">
-                  <span className="bg-white px-2">Or continue with institutional credentials</span>
-                </div>
               </div>
             </div>
 

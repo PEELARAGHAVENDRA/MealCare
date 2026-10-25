@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { GraduationCap, Lock, Mail, ShieldAlert, User, MapPin, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useSignUp } from "@clerk/nextjs";
 
 export default function RegisterPage() {
   const { register } = useAuth();
@@ -45,51 +46,77 @@ export default function RegisterPage() {
     fetchRoles();
   }, []);
 
+  const { isLoaded: isClerkLoaded, signUp, setActive } = useSignUp();
+
   // OTP Verification States
   const [otpModalOpen, setOtpModalOpen] = useState(false);
-  const [generatedOtp, setGeneratedOtp] = useState("");
   const [enteredOtp, setEnteredOtp] = useState("");
   const [otpError, setOtpError] = useState<string | null>(null);
 
-  const handleResendOtp = () => {
+  const handleResendOtp = async () => {
     setOtpError(null);
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    setGeneratedOtp(code);
-    console.log(
-      "%c[EMAIL VERIFICATION OTP] New Code: " + code,
-      "background: #10b981; color: #fff; font-size: 14px; font-weight: bold; padding: 4px 8px; border-radius: 4px;"
-    );
+    if (isClerkLoaded && signUp) {
+      try {
+        await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+      } catch (err: any) {
+        setOtpError("Failed to resend verification email.");
+      }
+    }
   };
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setOtpError(null);
-
-    if (enteredOtp !== generatedOtp) {
-      setOtpError("Invalid verification code. Please check your console log.");
-      return;
-    }
-
     setIsSubmitting(true);
-    try {
-      const res = await register(
-        name,
-        email,
-        password,
-        role,
-        role !== "DISTRICT_ADMIN" && role !== "SUPER_ADMIN" ? schoolId || "demo-school" : null,
-        role === "DISTRICT_ADMIN" ? districtId || "DEMO-DISTRICT" : null
-      );
 
-      if (res.success) {
-        setOtpModalOpen(false);
-        router.replace("/");
+    try {
+      if (isClerkLoaded && signUp) {
+        const completeSignUp = await signUp.attemptEmailAddressVerification({
+          code: enteredOtp
+        });
+
+        if (completeSignUp.status === "complete") {
+          await setActive({ session: completeSignUp.createdSessionId });
+
+          // Also register in MealCare backend
+          await register(
+            name,
+            email,
+            password,
+            role,
+            role !== "DISTRICT_ADMIN" && role !== "SUPER_ADMIN" ? schoolId || "demo-school" : null,
+            role === "DISTRICT_ADMIN" ? districtId || "DEMO-DISTRICT" : null
+          );
+
+          setOtpModalOpen(false);
+          router.replace("/");
+          return;
+        } else {
+          setOtpError("Verification incomplete. Please check your verification code.");
+          setIsSubmitting(false);
+          return;
+        }
       } else {
-        setOtpError(res.error || "Registration failed.");
-        setIsSubmitting(false);
+        const res = await register(
+          name,
+          email,
+          password,
+          role,
+          role !== "DISTRICT_ADMIN" && role !== "SUPER_ADMIN" ? schoolId || "demo-school" : null,
+          role === "DISTRICT_ADMIN" ? districtId || "DEMO-DISTRICT" : null
+        );
+
+        if (res.success) {
+          setOtpModalOpen(false);
+          router.replace("/");
+        } else {
+          setOtpError(res.error || "Registration failed.");
+          setIsSubmitting(false);
+        }
       }
-    } catch (err) {
-      setOtpError("An unexpected error occurred. Please try again.");
+    } catch (err: any) {
+      console.error("Verification error:", err);
+      setOtpError(err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || "Invalid or expired verification code.");
       setIsSubmitting(false);
     }
   };
@@ -108,16 +135,33 @@ export default function RegisterPage() {
       return;
     }
 
-    // Trigger OTP modal instead of direct sign up
-    setOtpError(null);
-    setEnteredOtp("");
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    setGeneratedOtp(code);
-    console.log(
-      "%c[EMAIL VERIFICATION OTP] Code: " + code,
-      "background: #10b981; color: #fff; font-size: 14px; font-weight: bold; padding: 4px 8px; border-radius: 4px;"
-    );
-    setOtpModalOpen(true);
+    if (isClerkLoaded && signUp) {
+      setIsSubmitting(true);
+      try {
+        await signUp.create({
+          emailAddress: email,
+          password: password,
+          firstName: name
+        });
+
+        await signUp.prepareEmailAddressVerification({
+          strategy: "email_code"
+        });
+
+        setOtpError(null);
+        setEnteredOtp("");
+        setOtpModalOpen(true);
+      } catch (err: any) {
+        console.error("Clerk signup init error:", err);
+        setError(err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || "Failed to initiate Clerk verification.");
+      } finally {
+        setIsSubmitting(false);
+      }
+    } else {
+      setOtpError(null);
+      setEnteredOtp("");
+      setOtpModalOpen(true);
+    }
   };
 
   return (
@@ -322,16 +366,15 @@ export default function RegisterPage() {
           <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
             <div className="text-center">
               <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-gov-green">
-                <Sparkles size={22} className="text-gov-green" />
+                <Mail size={22} className="text-gov-green" />
               </div>
-              <h3 className="text-lg font-extrabold text-slate-900">Email OTP Verification</h3>
-              <p className="mt-1.5 text-xs text-slate-500 font-semibold leading-relaxed">
-                We have simulated sending a verification code to <span className="text-slate-800 font-bold">{email}</span>.
+              <h3 className="text-lg font-extrabold text-slate-900">Email Verification Code</h3>
+              <p className="mt-2 text-xs text-slate-600 font-medium leading-relaxed">
+                A 6-digit verification code was sent to <span className="text-slate-900 font-bold">{email}</span> via Gmail.
               </p>
-              <div className="mt-2.5 flex flex-col items-center gap-1.5 rounded-lg bg-emerald-50/70 border border-emerald-100 p-2.5 text-[11px] font-bold text-gov-green">
-                <span>Use the development code below or check console:</span>
-                <span className="rounded bg-white px-3 py-1 text-sm font-mono text-slate-800 border border-emerald-200 tracking-wider select-all">{generatedOtp}</span>
-              </div>
+              <p className="mt-1 text-[11px] text-slate-400 font-medium">
+                Please check your inbox or spam folder and enter the code below.
+              </p>
             </div>
 
             {otpError && (
