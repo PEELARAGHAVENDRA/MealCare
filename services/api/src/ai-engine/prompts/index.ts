@@ -68,18 +68,24 @@ Respond with this exact JSON schema:
 // ── 2. Weekly Meal Plan ───────────────────────────────────────────────────────
 
 export function plannerPrompt(input: MealPlanInput): string {
-  const inventory = input.availableInventory
-    .map((i: InventoryItem) => `${i.name}: ${i.quantityKg}kg`)
-    .join(", ");
+  const inventoryList = Array.isArray(input.availableInventory) ? input.availableInventory : [];
+  const inventory = inventoryList
+    .map((i: InventoryItem) => `${i?.name || "Item"}: ${i?.quantityKg ?? 0}kg`)
+    .join(", ") || "Standard pantry staples";
+
+  const workingDays = Array.isArray(input.workingDays) && input.workingDays.length > 0
+    ? input.workingDays
+    : ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+  const holidays = Array.isArray(input.holidayList) ? input.holidayList : [];
 
   return `
 Create an optimized weekly meal schedule for an Indian government school.
 
 Context:
-- Students: ${input.studentCount}
-- Budget: ₹${input.budgetPerStudentPerDay} per student per day
-- Working days: ${input.workingDays.join(", ")}
-- Holidays (skip these dates): ${input.holidayList.join(", ") || "none"}
+- Students: ${input.studentCount || 100}
+- Budget: ₹${input.budgetPerStudentPerDay || 20} per student per day
+- Working days: ${workingDays.join(", ")}
+- Holidays (skip these dates): ${holidays.join(", ") || "none"}
 - Available inventory: ${inventory}
 - Previous meals (avoid repetition): ${(input.previousMeals ?? []).join(", ") || "none"}
 - Dietary opt-outs/restrictions: ${(input.optOuts ?? []).join(", ") || "none"}

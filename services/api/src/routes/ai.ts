@@ -98,7 +98,33 @@ aiRouter.post(
   "/ai/meal-plan",
   requireRole("SCHOOL_HEAD", "SUPER_ADMIN"),
   asyncHandler(async (req, res) => {
-    const result = await mealOptimizer(req.body);
+    const today = new Date();
+    const defaultWorkingDays = Array.from({ length: 5 }, (_, i) => {
+      const d = new Date(today);
+      d.setDate(today.getDate() + i + 1);
+      return d.toISOString().split("T")[0];
+    });
+
+    const normalizedInput = {
+      studentCount: Number(req.body.studentCount) || 100,
+      budgetPerStudentPerDay: Number(req.body.budgetPerStudentPerDay || (req.body.budgetPerStudentPerWeek ? req.body.budgetPerStudentPerWeek / 5 : 20)) || 20,
+      workingDays: Array.isArray(req.body.workingDays) && req.body.workingDays.length > 0
+        ? req.body.workingDays
+        : defaultWorkingDays,
+      holidayList: Array.isArray(req.body.holidayList) ? req.body.holidayList : [],
+      availableInventory: Array.isArray(req.body.availableInventory)
+        ? req.body.availableInventory
+        : Array.isArray(req.body.inventoryItems)
+        ? req.body.inventoryItems.map((item: any) =>
+            typeof item === "string" ? { name: item, quantityKg: 50 } : item
+          )
+        : [],
+      previousMeals: Array.isArray(req.body.previousMeals) ? req.body.previousMeals : [],
+      optOuts: Array.isArray(req.body.optOuts) ? req.body.optOuts : req.body.dietaryPreferences || [],
+      schoolId: req.body.schoolId || req.user?.schoolId || "default-school",
+    };
+
+    const result = await mealOptimizer(normalizedInput);
 
     // Optionally persist the generated plan
     if (req.body.schoolId && req.body.weekStartDate) {

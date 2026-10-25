@@ -68,7 +68,7 @@ export class GeminiProvider implements AIProvider {
   constructor() {
     this.apiKey = process.env.GEMINI_API_KEY ?? "";
     this.model = process.env.MODEL_NAME ?? "gemini-2.5-flash";
-    this.timeoutMs = parseInt(process.env.AI_TIMEOUT_MS ?? "30000", 10);
+    this.timeoutMs = parseInt(process.env.AI_TIMEOUT_MS ?? "60000", 10);
     this.baseUrl = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent`;
 
     this.lastUsageStats = {
@@ -114,7 +114,7 @@ export class GeminiProvider implements AIProvider {
       generationConfig: {
         temperature: 0.2,       // low temp → more deterministic JSON
         topP: 0.8,
-        maxOutputTokens: 4096,
+        maxOutputTokens: 8192,
         responseMimeType: "application/json",
       },
     });

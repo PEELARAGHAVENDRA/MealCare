@@ -135,8 +135,12 @@ export class RulesEngine implements AIProvider {
 
   async generateWeeklyPlan(input: MealPlanInput): Promise<MealPlanOutput> {
     const start = Date.now();
-    const schedule = input.workingDays
-      .filter((d) => !input.holidayList.includes(d))
+    const workingDays = Array.isArray(input.workingDays) && input.workingDays.length > 0
+      ? input.workingDays
+      : ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+    const holidayList = Array.isArray(input.holidayList) ? input.holidayList : [];
+    const schedule = workingDays
+      .filter((d) => !holidayList.includes(d))
       .map((date, i) => ({
         date,
         breakfast: STANDARD_MEALS.breakfast[i % STANDARD_MEALS.breakfast.length],
