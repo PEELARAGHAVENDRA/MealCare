@@ -11,7 +11,12 @@
     "dev": "npm run dev --workspace=@midday/web-dashboard",
     "dev:web": "npm run dev --workspace=@midday/web-dashboard",
     "dev:api": "npm run dev --workspace=@midday/api",
-    "build": "npm run build --workspaces",
+    "build": "npm run build:contracts && npm run db:generate && npm run build:api",
+    "build:all": "npm run build:contracts && npm run db:generate && npm run build:api && npm run build:web",
+    "build:contracts": "npm run build --workspace=@midday/shared-contracts",
+    "build:api": "npm run build --workspace=@midday/api",
+    "build:web": "npm run build --workspace=@midday/web-dashboard",
+    "start": "npm run start --workspace=@midday/api",
     "db:generate": "npm run prisma:generate --workspace=@midday/api",
     "db:push": "npm run prisma:push --workspace=@midday/api",
     "db:seed": "npm run seed --workspace=@midday/api"
