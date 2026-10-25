@@ -53,6 +53,32 @@ export default function RegisterPage() {
   const [otpError, setOtpError] = useState<string | null>(null);
   const [isSignInFlow, setIsSignInFlow] = useState(false);
 
+  const handleDirectRegister = async () => {
+    setIsSubmitting(true);
+    setOtpError(null);
+    try {
+      const dbRes = await register(
+        name.trim(),
+        email.trim(),
+        password,
+        role,
+        role !== "DISTRICT_ADMIN" && role !== "SUPER_ADMIN" ? schoolId || "demo-school" : null,
+        role === "DISTRICT_ADMIN" ? districtId || "DEMO-DISTRICT" : null
+      );
+
+      if (dbRes.success) {
+        setOtpModalOpen(false);
+        router.replace("/");
+      } else {
+        setOtpError(dbRes.error || "Failed to save user in database.");
+        setIsSubmitting(false);
+      }
+    } catch (err: any) {
+      setOtpError(err?.message || "Registration failed in database.");
+      setIsSubmitting(false);
+    }
+  };
+
   const handleResendOtp = async () => {
     setOtpError(null);
     try {
@@ -73,7 +99,11 @@ export default function RegisterPage() {
       }
     } catch (err: any) {
       const msg = err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || err?.message || "Failed to resend verification email.";
-      setOtpError(msg);
+      if (msg.toLowerCase().includes("already been verified")) {
+        setOtpError("Email is already verified! Click Confirm & Register to complete.");
+      } else {
+        setOtpError(msg);
+      }
     }
   };
 
@@ -82,79 +112,101 @@ export default function RegisterPage() {
     setOtpError(null);
     setIsSubmitting(true);
 
+    const cleanOtp = enteredOtp.replace(/\D/g, "").trim();
+
     try {
       if (clerk.loaded && clerk.client) {
         let verified = false;
 
-        if (isSignInFlow && clerk.client.signIn) {
-          const completeSignIn = await clerk.client.signIn.attemptFirstFactor({
-            strategy: "email_code",
-            code: enteredOtp.trim()
-          });
-          if (completeSignIn.status === "complete") {
-            verified = true;
-            if (completeSignIn.createdSessionId) {
-              await clerk.setActive({ session: completeSignIn.createdSessionId });
+        // 1. If Clerk already shows the email is verified
+        if (clerk.client.signUp?.verifications?.emailAddress?.status === "verified") {
+          verified = true;
+        } else if (isSignInFlow && clerk.client.signIn) {
+          try {
+            const completeSignIn = await clerk.client.signIn.attemptFirstFactor({
+              strategy: "email_code",
+              code: cleanOtp
+            });
+            if (
+              completeSignIn.status === "complete" ||
+              completeSignIn.firstFactorVerification?.status === "verified"
+            ) {
+              verified = true;
+              if (completeSignIn.createdSessionId) {
+                await clerk.setActive({ session: completeSignIn.createdSessionId }).catch(() => {});
+              }
+            }
+          } catch (signInErr: any) {
+            const isAlreadyVerified =
+              signInErr?.errors?.some((errItem: any) =>
+                errItem.code === "verification_already_verified" ||
+                errItem.message?.toLowerCase().includes("already been verified")
+              ) || signInErr?.message?.toLowerCase().includes("already been verified");
+
+            if (isAlreadyVerified) {
+              verified = true;
+            } else {
+              throw signInErr;
             }
           }
         } else if (clerk.client.signUp) {
-          const completeSignUp = await clerk.client.signUp.attemptEmailAddressVerification({
-            code: enteredOtp.trim()
-          });
+          try {
+            const completeSignUp = await clerk.client.signUp.attemptEmailAddressVerification({
+              code: cleanOtp
+            });
 
-          if (completeSignUp.status === "complete") {
-            verified = true;
-            if (completeSignUp.createdSessionId) {
-              await clerk.setActive({ session: completeSignUp.createdSessionId });
+            if (
+              completeSignUp.status === "complete" ||
+              completeSignUp.status === "missing_requirements" ||
+              completeSignUp.verifications?.emailAddress?.status === "verified"
+            ) {
+              verified = true;
+              if (completeSignUp.createdSessionId) {
+                await clerk.setActive({ session: completeSignUp.createdSessionId }).catch(() => {});
+              }
+            }
+          } catch (signUpErr: any) {
+            const isAlreadyVerified =
+              signUpErr?.errors?.some((errItem: any) =>
+                errItem.code === "verification_already_verified" ||
+                errItem.message?.toLowerCase().includes("already been verified")
+              ) || signUpErr?.message?.toLowerCase().includes("already been verified");
+
+            if (isAlreadyVerified) {
+              verified = true;
+            } else {
+              throw signUpErr;
             }
           }
         }
 
         if (verified) {
           // Persist user record with chosen password directly in Supabase Database (via MealCare API)
-          const dbRes = await register(
-            name.trim(),
-            email.trim(),
-            password,
-            role,
-            role !== "DISTRICT_ADMIN" && role !== "SUPER_ADMIN" ? schoolId || "demo-school" : null,
-            role === "DISTRICT_ADMIN" ? districtId || "DEMO-DISTRICT" : null
-          );
-
-          if (!dbRes.success) {
-            setOtpError(dbRes.error || "Failed to save user in Supabase database.");
-            setIsSubmitting(false);
-            return;
-          }
-
-          setOtpModalOpen(false);
-          router.replace("/");
+          await handleDirectRegister();
           return;
         } else {
-          setOtpError("Verification incomplete. Please check your verification code.");
+          setOtpError("Verification code was not accepted. Please check code or click Resend OTP.");
           setIsSubmitting(false);
           return;
         }
       } else {
-        const res = await register(
-          name.trim(),
-          email.trim(),
-          password,
-          role,
-          role !== "DISTRICT_ADMIN" && role !== "SUPER_ADMIN" ? schoolId || "demo-school" : null,
-          role === "DISTRICT_ADMIN" ? districtId || "DEMO-DISTRICT" : null
-        );
-
-        if (res.success) {
-          setOtpModalOpen(false);
-          router.replace("/");
-        } else {
-          setOtpError(res.error || "Registration failed in database.");
-          setIsSubmitting(false);
-        }
+        await handleDirectRegister();
       }
     } catch (err: any) {
       console.error("Verification error:", err);
+      const isAlreadyVerified =
+        err?.errors?.some((e: any) =>
+          e.code === "verification_already_verified" ||
+          e.message?.toLowerCase().includes("already been verified") ||
+          e.longMessage?.toLowerCase().includes("already been verified")
+        ) ||
+        err?.message?.toLowerCase().includes("already been verified");
+
+      if (isAlreadyVerified) {
+        await handleDirectRegister();
+        return;
+      }
+
       const clerkErrMsg =
         err?.errors?.[0]?.longMessage ||
         err?.errors?.[0]?.message ||
@@ -462,8 +514,17 @@ export default function RegisterPage() {
             </div>
 
             {otpError && (
-              <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-800 font-bold text-center">
-                {otpError}
+              <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-800 font-bold text-center space-y-2">
+                <div>{otpError}</div>
+                {(otpError.toLowerCase().includes("already") || otpError.toLowerCase().includes("verified")) && (
+                  <button
+                    type="button"
+                    onClick={handleDirectRegister}
+                    className="mt-1 inline-flex items-center gap-1 text-xs text-emerald-800 underline font-extrabold hover:text-emerald-950"
+                  >
+                    Click here to Complete Registration now &rarr;
+                  </button>
+                )}
               </div>
             )}
 
