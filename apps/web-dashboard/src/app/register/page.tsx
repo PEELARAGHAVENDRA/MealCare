@@ -136,8 +136,8 @@ export default function RegisterPage() {
       return;
     }
 
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters long.");
+    if (password.length < 15) {
+      setError("Password must be at least 15 characters long (Clerk security requirement).");
       return;
     }
 
@@ -325,11 +325,11 @@ export default function RegisterPage() {
                   className="block w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-4 text-sm text-slate-800 placeholder-slate-400 outline-none transition focus:border-gov-green focus:ring-2 focus:ring-gov-green/10"
                   placeholder="••••••••"
                   disabled={isSubmitting}
-                  minLength={8}
+                  minLength={15}
                   required
                 />
               </div>
-              <p className="mt-1 text-[11px] text-slate-400">Must be at least 8 characters</p>
+              <p className="mt-1 text-[11px] text-slate-400">Must be at least 15 characters (Clerk security policy)</p>
             </div>
 
             <div>
