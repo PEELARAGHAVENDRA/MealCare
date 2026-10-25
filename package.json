@@ -1,5 +1,6 @@
 {
   "name": "midday-meal-ai",
+  "version": "0.1.0",
   "private": true,
   "workspaces": [
     "apps/web-dashboard",
@@ -7,13 +8,13 @@
     "packages/shared-contracts"
   ],
   "scripts": {
-    "dev": "npm run dev -w services/api",
-    "dev:api": "npm run dev -w services/api",
-    "dev:web": "npm run dev -w apps/web-dashboard",
-    "build": "npm run db:generate && npm run build -w packages/shared-contracts && npm run build -w services/api && npm run build -w apps/web-dashboard",
-    "test": "npm run test -w services/api",
-    "db:generate": "npm run prisma:generate -w services/api",
-    "db:push": "npm run prisma:push -w services/api",
-    "db:seed": "npm run seed -w services/api"
+    "dev": "npm run dev --workspace=@midday/web-dashboard",
+    "dev:web": "npm run dev --workspace=@midday/web-dashboard",
+    "dev:api": "npm run dev --workspace=@midday/api",
+    "build": "npm run build --workspaces",
+    "db:generate": "npm run prisma:generate --workspace=@midday/api",
+    "db:push": "npm run prisma:push --workspace=@midday/api",
+    "db:seed": "npm run seed --workspace=@midday/api"
   }
 }
+
