@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { useDemo } from "@/lib/DemoContext";
-import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
+
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: BarChart3, roles: ["SUPER_ADMIN", "DISTRICT_ADMIN", "NUTRITION_OFFICER", "SCHOOL_HEAD", "KITCHEN_STAFF", "TEACHER", "STUDENT_PARENT", "FOOD_SERVER"] },
@@ -209,19 +209,7 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
               )}
             </div>
 
-            {/* Clerk User Controls */}
-            <div className="flex items-center gap-2">
-              <SignedIn>
-                <UserButton />
-              </SignedIn>
-              <SignedOut>
-                <SignInButton mode="modal">
-                  <button className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-gov-green text-white hover:bg-emerald-700 transition shadow-sm">
-                    Clerk Sign In
-                  </button>
-                </SignInButton>
-              </SignedOut>
-            </div>
+
           </div>
         </header>
 
