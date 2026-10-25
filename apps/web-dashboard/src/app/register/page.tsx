@@ -5,11 +5,12 @@ import { useAuth } from "@/lib/AuthContext";
 import { GraduationCap, Lock, Mail, ShieldAlert, User, MapPin, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useSignUp } from "@clerk/nextjs";
+import { useClerk } from "@clerk/nextjs";
 
 export default function RegisterPage() {
   const { register } = useAuth();
   const router = useRouter();
+  const clerk = useClerk();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -46,11 +47,6 @@ export default function RegisterPage() {
     fetchRoles();
   }, []);
 
-  const clerkSignUp = (useSignUp as any)();
-  const isClerkLoaded = clerkSignUp?.isLoaded ?? !!clerkSignUp;
-  const signUp = clerkSignUp?.signUp ?? clerkSignUp;
-  const setActive = clerkSignUp?.setActive;
-
   // OTP Verification States
   const [otpModalOpen, setOtpModalOpen] = useState(false);
   const [enteredOtp, setEnteredOtp] = useState("");
@@ -58,11 +54,12 @@ export default function RegisterPage() {
 
   const handleResendOtp = async () => {
     setOtpError(null);
-    if (isClerkLoaded && signUp) {
+    if (clerk.loaded && clerk.client?.signUp) {
       try {
-        await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+        await clerk.client.signUp.prepareEmailAddressVerification({ strategy: "email_code" });
       } catch (err: any) {
-        setOtpError("Failed to resend verification email.");
+        const msg = err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || err?.message || "Failed to resend verification email.";
+        setOtpError(msg);
       }
     }
   };
@@ -73,13 +70,15 @@ export default function RegisterPage() {
     setIsSubmitting(true);
 
     try {
-      if (isClerkLoaded && signUp) {
-        const completeSignUp = await signUp.attemptEmailAddressVerification({
-          code: enteredOtp
+      if (clerk.loaded && clerk.client?.signUp) {
+        const completeSignUp = await clerk.client.signUp.attemptEmailAddressVerification({
+          code: enteredOtp.trim()
         });
 
         if (completeSignUp.status === "complete") {
-          await setActive({ session: completeSignUp.createdSessionId });
+          if (completeSignUp.createdSessionId) {
+            await clerk.setActive({ session: completeSignUp.createdSessionId });
+          }
 
           // Also register in MealCare backend
           await register(
@@ -119,7 +118,11 @@ export default function RegisterPage() {
       }
     } catch (err: any) {
       console.error("Verification error:", err);
-      setOtpError(err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || "Invalid or expired verification code.");
+      const clerkErrMsg =
+        err?.errors?.[0]?.longMessage ||
+        err?.errors?.[0]?.message ||
+        err?.message;
+      setOtpError(clerkErrMsg || "Invalid or expired verification code.");
       setIsSubmitting(false);
     }
   };
@@ -133,21 +136,26 @@ export default function RegisterPage() {
       return;
     }
 
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters long.");
+      return;
+    }
+
     if (password !== confirmPassword) {
       setError("Passwords do not match.");
       return;
     }
 
-    if (isClerkLoaded && signUp) {
+    if (clerk.loaded && clerk.client?.signUp) {
       setIsSubmitting(true);
       try {
-        await signUp.create({
-          emailAddress: email,
+        await clerk.client.signUp.create({
+          emailAddress: email.trim(),
           password: password,
-          firstName: name
+          firstName: name.trim()
         });
 
-        await signUp.prepareEmailAddressVerification({
+        await clerk.client.signUp.prepareEmailAddressVerification({
           strategy: "email_code"
         });
 
@@ -156,7 +164,11 @@ export default function RegisterPage() {
         setOtpModalOpen(true);
       } catch (err: any) {
         console.error("Clerk signup init error:", err);
-        setError(err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || "Failed to initiate Clerk verification.");
+        const clerkErrMsg =
+          err?.errors?.[0]?.longMessage ||
+          err?.errors?.[0]?.message ||
+          err?.message;
+        setError(clerkErrMsg || "Failed to initiate Clerk verification.");
       } finally {
         setIsSubmitting(false);
       }
@@ -313,9 +325,11 @@ export default function RegisterPage() {
                   className="block w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-4 text-sm text-slate-800 placeholder-slate-400 outline-none transition focus:border-gov-green focus:ring-2 focus:ring-gov-green/10"
                   placeholder="••••••••"
                   disabled={isSubmitting}
+                  minLength={8}
                   required
                 />
               </div>
+              <p className="mt-1 text-[11px] text-slate-400">Must be at least 8 characters</p>
             </div>
 
             <div>
