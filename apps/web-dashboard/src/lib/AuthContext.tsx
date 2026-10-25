@@ -158,7 +158,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setLoading(false);
             return;
           }
-          const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://mealcare-production.up.railway.app";
           const res = await fetch(`${apiUrl}/auth/me`, {
             headers: {
               "Authorization": `Bearer ${storedToken}`
@@ -188,7 +188,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://mealcare-production.up.railway.app";
       const response = await fetch(`${apiUrl}/auth/login`, {
         method: "POST",
         headers: {
@@ -237,7 +237,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     districtId?: string | null
   ) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://mealcare-production.up.railway.app";
       const response = await fetch(`${apiUrl}/auth/register`, {
         method: "POST",
         headers: {

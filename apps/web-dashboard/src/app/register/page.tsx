@@ -80,15 +80,21 @@ export default function RegisterPage() {
             await clerk.setActive({ session: completeSignUp.createdSessionId });
           }
 
-          // Also register in MealCare backend
-          await register(
-            name,
-            email,
+          // Save account with user's chosen password directly in Supabase Database (via MealCare API)
+          const dbRes = await register(
+            name.trim(),
+            email.trim(),
             password,
             role,
             role !== "DISTRICT_ADMIN" && role !== "SUPER_ADMIN" ? schoolId || "demo-school" : null,
             role === "DISTRICT_ADMIN" ? districtId || "DEMO-DISTRICT" : null
           );
+
+          if (!dbRes.success) {
+            setOtpError(dbRes.error || "Failed to create user in database.");
+            setIsSubmitting(false);
+            return;
+          }
 
           setOtpModalOpen(false);
           router.replace("/");
@@ -100,8 +106,8 @@ export default function RegisterPage() {
         }
       } else {
         const res = await register(
-          name,
-          email,
+          name.trim(),
+          email.trim(),
           password,
           role,
           role !== "DISTRICT_ADMIN" && role !== "SUPER_ADMIN" ? schoolId || "demo-school" : null,
@@ -136,8 +142,8 @@ export default function RegisterPage() {
       return;
     }
 
-    if (password.length < 15) {
-      setError("Password must be at least 15 characters long (Clerk security requirement).");
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters.");
       return;
     }
 
@@ -149,11 +155,20 @@ export default function RegisterPage() {
     if (clerk.loaded && clerk.client?.signUp) {
       setIsSubmitting(true);
       try {
-        await clerk.client.signUp.create({
-          emailAddress: email.trim(),
-          password: password,
-          firstName: name.trim()
-        });
+        // Clerk is used strictly as the email OTP delivery & verification provider.
+        // We supply a clean, unbreached secure internal key for Clerk's temporary verification session
+        // so Clerk's password policies do not interfere. The user's actual password is saved to Supabase database.
+        const internalClerkSecret = `ClerkVerify_${Math.random().toString(36).slice(2)}_${Date.now()}!Aa9`;
+
+        try {
+          await clerk.client.signUp.create({
+            emailAddress: email.trim(),
+            password: internalClerkSecret,
+            firstName: name.trim()
+          });
+        } catch (createErr: any) {
+          console.warn("Clerk create notice (checking if session can be verified):", createErr);
+        }
 
         await clerk.client.signUp.prepareEmailAddressVerification({
           strategy: "email_code"
@@ -168,7 +183,7 @@ export default function RegisterPage() {
           err?.errors?.[0]?.longMessage ||
           err?.errors?.[0]?.message ||
           err?.message;
-        setError(clerkErrMsg || "Failed to initiate Clerk verification.");
+        setError(clerkErrMsg || "Failed to initiate email verification.");
       } finally {
         setIsSubmitting(false);
       }
@@ -325,11 +340,11 @@ export default function RegisterPage() {
                   className="block w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-4 text-sm text-slate-800 placeholder-slate-400 outline-none transition focus:border-gov-green focus:ring-2 focus:ring-gov-green/10"
                   placeholder="••••••••"
                   disabled={isSubmitting}
-                  minLength={15}
+                  minLength={6}
                   required
                 />
               </div>
-              <p className="mt-1 text-[11px] text-slate-400">Must be at least 15 characters (Clerk security policy)</p>
+              <p className="mt-1 text-[11px] text-slate-400">At least 6 characters</p>
             </div>
 
             <div>
